@@ -1,7 +1,7 @@
-# wrangler.toml - Cloudflare Workers configuration for AI Playlist Curator
+# wrangler.toml - Fixed Cloudflare Workers configuration for AI Playlist Curator
 
 name = "playlist-ai"
-main = "src/workers/api-worker.js"
+main = "src/workers/api-worker.js"  # Fixed: matches actual filename with underscore
 compatibility_date = "2024-03-01"
 
 # Environment variables
@@ -17,12 +17,12 @@ ENVIRONMENT = "development"
 [[d1_databases]]
 binding = "DB"
 database_name = "playlist-ai-db"
-database_id = "702d7210-6ee3-4462-9101-a41a3877068b"  # Replace with actual D1 database ID
+database_id = "702d7210-6ee3-4462-9101-a41a3877068b"  # Your actual D1 database ID
 
 # KV namespace for sessions
 [[kv_namespaces]]
 binding = "SESSIONS"
-id = "d08b2f068c944da1ace819d9441bee68"  # Replace with actual KV namespace ID
+id = "d08b2f068c944da1ace819d9441bee68"  # Your actual KV namespace ID
 
 # R2 bucket for file storage (Phase 5)
 # [[r2_buckets]]
