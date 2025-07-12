@@ -1,51 +1,37 @@
-# wrangler.toml - Fixed Cloudflare Workers configuration for AI Playlist Curator
+# wrangler.toml - Fixed with local development secret support
 
 name = "playlist-ai"
-main = "src/workers/api-worker.js"  # Fixed: matches actual filename with underscore
+main = "src/workers/api-worker.js"
 compatibility_date = "2024-03-01"
 
-# Environment variables
+# Environment variables for local development only
 [vars]
 ENVIRONMENT = "development"
-
-# Secrets (set these via: wrangler secret put SECRET_NAME)
-# JWT_SECRET - for signing JWT tokens
-# Required secrets:
-# - JWT_SECRET
+# Note: JWT_SECRET removed for production security - use wrangler secret put instead
 
 # D1 Database binding
 [[d1_databases]]
 binding = "DB"
 database_name = "playlist-ai-db"
-database_id = "702d7210-6ee3-4462-9101-a41a3877068b"  # Your actual D1 database ID
+database_id = "702d7210-6ee3-4462-9101-a41a3877068b"
 
 # KV namespace for sessions
 [[kv_namespaces]]
 binding = "SESSIONS"
-id = "d08b2f068c944da1ace819d9441bee68"  # Your actual KV namespace ID
-
-# R2 bucket for file storage (Phase 5)
-# [[r2_buckets]]
-# binding = "BUCKET"
-# bucket_name = "playlist-ai-files"
-
-# Routes for custom domains (optional)
-# routes = [
-#   { pattern = "api.playlist-ai.com/*", custom_domain = true }
-# ]
-
-# Worker settings
-[build]
-command = ""
+id = "d08b2f068c944da1ace819d9441bee68"
 
 # Development settings
 [env.development]
-vars = { ENVIRONMENT = "development" }
+[env.development.vars]
+ENVIRONMENT = "development"
+JWT_SECRET = "local-dev-jwt-secret-key-minimum-32-characters-for-testing-purposes-only"
 
-# Staging environment
+# Staging environment (uses actual secrets)
 [env.staging]
 name = "playlist-ai-staging"
-vars = { ENVIRONMENT = "staging" }
+[env.staging.vars]
+ENVIRONMENT = "staging"
+# Note: JWT_SECRET will come from wrangler secret put in staging/production
 
 [[env.staging.d1_databases]]
 binding = "DB"
@@ -56,10 +42,12 @@ database_id = "your-staging-d1-id"
 binding = "SESSIONS"
 id = "your-staging-kv-id"
 
-# Production environment
+# Production environment (uses actual secrets)
 [env.production]
 name = "playlist-ai-production"
-vars = { ENVIRONMENT = "production" }
+[env.production.vars]
+ENVIRONMENT = "production"
+# Note: JWT_SECRET will come from wrangler secret put in production
 
 [[env.production.d1_databases]]
 binding = "DB"
@@ -74,6 +62,6 @@ id = "your-production-kv-id"
 [observability]
 enabled = true
 
-# Limits and resources
-[limits]
-cpu_ms = 50
+# Note: CPU limits removed - not supported on Free plan
+# [limits]
+# cpu_ms = 50
