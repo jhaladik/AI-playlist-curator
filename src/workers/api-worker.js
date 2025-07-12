@@ -1,8 +1,12 @@
-// src/workers/api-worker.js - Enhanced API worker combining Phase 1 + Phase 2
+// src/workers/api-worker.js - CORRECTED Enhanced API worker (Phases 1-3)
 
+// === ALL IMPORTS AT TOP ===
 import { extractUserFromToken } from '../utils/auth-utils.js';
-import { PlaylistDB, handleDBError } from '../utils/db-utils.js';
+import { PlaylistDB, UserDB, GDPRConsentDB, handleDBError } from '../utils/db-utils.js';
 import { YouTubeAPI, ValidationUtils } from '../utils/youtube-api.js';
+import { OpenAIClient, ContentPreparation } from '../utils/openai-client.js';
+import { ContentAnalysisEngine } from '../utils/content-analysis.js';
+import { PromptTemplates } from '../utils/prompt-templates.js';
 import { 
   YouTubeValidator, 
   PlaylistValidator, 
@@ -10,6 +14,15 @@ import {
   RequestValidator,
   Sanitizer 
 } from '../utils/validation.js';
+import {
+  createJWT,
+  verifyJWT,
+  hashPassword,
+  verifyPassword,
+  generateUserId,
+  isValidEmail,
+  isValidPassword
+} from '../utils/auth-utils.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -26,30 +39,30 @@ export default {
     }
     
     try {
-    // In your existing health check endpoint
-    if (url.pathname === '/api/health' && request.method === 'GET') {
-      const features = ['auth', 'playlists'];
-      
-      // Add Phase 2 features if available
-      if (env.YOUTUBE_API_KEY) {
-        features.push('youtube-import', 'video-management');
+      // === HEALTH CHECK ===
+      if (url.pathname === '/api/health' && request.method === 'GET') {
+        const features = ['auth', 'playlists'];
+        
+        // Add Phase 2 features if available
+        if (env.YOUTUBE_API_KEY) {
+          features.push('youtube-import', 'video-management');
+        }
+        
+        // Add Phase 3 features if available ✨
+        if (env.OPENAI_API_KEY) {
+          features.push('ai-enhancement', 'content-analysis');
+        }
+        
+        return jsonResponse({ 
+          status: 'healthy', 
+          timestamp: Date.now(),
+          phase: env.OPENAI_API_KEY ? 'Phase 3 - AI Enhancement' : 
+                env.YOUTUBE_API_KEY ? 'Phase 2 - YouTube Integration' : 
+                'Phase 1 - Basic Features',
+          features
+        });
       }
-      
-      // Add Phase 3 features if available ✨
-      if (env.OPENAI_API_KEY) {
-        features.push('ai-enhancement', 'content-analysis');
-      }
-      
-      return jsonResponse({ 
-        status: 'healthy', 
-        timestamp: Date.now(),
-        phase: env.OPENAI_API_KEY ? 'Phase 3 - AI Enhancement' : 
-              env.YOUTUBE_API_KEY ? 'Phase 2 - YouTube Integration' : 
-              'Phase 1 - Basic Features',
-        features
-      });
-    }
-      
+        
       // === PHASE 1 ENDPOINTS (Auth & Basic Playlists) ===
       
       // Auth endpoints
@@ -159,6 +172,41 @@ export default {
         return await handleGetImportStatus(request, env, importId);
       }
       
+      // === PHASE 3 AI ENHANCEMENT ENDPOINTS ===
+      
+      // Enhance playlist description
+      if (url.pathname.match(/^\/api\/playlists\/[^\/]+\/enhance$/) && request.method === 'POST') {
+        const playlistId = url.pathname.split('/')[3];
+        return await handleEnhancePlaylist(request, env, playlistId);
+      }
+      
+      // Get enhancement status
+      if (url.pathname.match(/^\/api\/playlists\/[^\/]+\/enhancement$/) && request.method === 'GET') {
+        const playlistId = url.pathname.split('/')[3];
+        return await handleGetEnhancement(request, env, playlistId);
+      }
+      
+      // Analyze playlist content
+      if (url.pathname.match(/^\/api\/playlists\/[^\/]+\/analyze$/) && request.method === 'POST') {
+        const playlistId = url.pathname.split('/')[3];
+        return await handleAnalyzeContent(request, env, playlistId);
+      }
+      
+      // Get AI usage stats
+      if (url.pathname === '/api/ai/usage' && request.method === 'GET') {
+        return await handleGetAIUsage(request, env);
+      }
+      
+      // User AI preferences
+      if (url.pathname === '/api/ai/preferences' && request.method === 'GET') {
+        return await handleGetAIPreferences(request, env);
+      }
+      
+      if (url.pathname === '/api/ai/preferences' && request.method === 'PUT') {
+        return await handleUpdateAIPreferences(request, env);
+      }
+      
+      // 404 for unmatched routes
       return jsonResponse({ error: 'Not found' }, 404);
       
     } catch (error) {
@@ -169,19 +217,6 @@ export default {
 };
 
 // === PHASE 1 IMPLEMENTATION (Auth & Basic Playlists) ===
-
-// Import auth functions
-import {
-  createJWT,
-  verifyJWT,
-  hashPassword,
-  verifyPassword,
-  generateUserId,
-  isValidEmail,
-  isValidPassword
-} from '../utils/auth-utils.js';
-
-import { UserDB, GDPRConsentDB } from '../utils/db-utils.js';
 
 /**
  * Handle user registration
@@ -1175,6 +1210,394 @@ async function handleGetImportStatus(request, env, importId) {
       return jsonResponse({ error: 'Unauthorized' }, 401);
     }
     return jsonResponse({ error: 'Failed to get import status' }, 500);
+  }
+}
+
+// === PHASE 3 IMPLEMENTATION (AI Enhancement) ===
+
+/**
+ * Handle AI playlist enhancement
+ */
+async function handleEnhancePlaylist(request, env, playlistId) {
+  try {
+    const userData = await extractUserFromToken(request, env.JWT_SECRET);
+    
+    if (!env.OPENAI_API_KEY) {
+      return jsonResponse({ 
+        error: 'AI enhancement not available. OpenAI API key not configured.' 
+      }, 503);
+    }
+    
+    // Validate playlist ownership
+    const playlist = await PlaylistDB.findById(env.DB, playlistId);
+    if (!playlist) {
+      return jsonResponse({ error: 'Playlist not found' }, 404);
+    }
+    
+    if (playlist.user_id !== userData.userId) {
+      return jsonResponse({ error: 'Access denied' }, 403);
+    }
+    
+    // Check if already enhanced recently
+    const recentEnhancement = await env.DB.prepare(`
+      SELECT id FROM enhancement_history 
+      WHERE playlist_id = ? AND enhancement_type = 'description' 
+      AND completed_at > strftime('%s', 'now') - 3600
+      ORDER BY completed_at DESC LIMIT 1
+    `).bind(playlistId).first();
+    
+    if (recentEnhancement) {
+      return jsonResponse({ 
+        error: 'Playlist was enhanced recently. Please wait before enhancing again.' 
+      }, 429);
+    }
+    
+    // Get playlist videos
+    const videos = await env.DB.prepare(`
+      SELECT * FROM playlist_videos WHERE playlist_id = ? ORDER BY position LIMIT 20
+    `).bind(playlistId).all();
+    
+    // Get user AI preferences
+    let preferences = await env.DB.prepare(`
+      SELECT * FROM user_ai_preferences WHERE user_id = ?
+    `).bind(userData.userId).first();
+    
+    if (!preferences) {
+      // Create default preferences
+      const prefsId = crypto.randomUUID();
+      await env.DB.prepare(`
+        INSERT INTO user_ai_preferences (id, user_id) VALUES (?, ?)
+      `).bind(prefsId, userData.userId).run();
+      
+      preferences = {
+        enhancement_style: 'educational',
+        include_keywords: 1,
+        include_learning_objectives: 1,
+        preferred_ai_model: 'gpt-4o-mini'
+      };
+    }
+    
+    // Initialize AI client
+    const aiClient = new OpenAIClient(env.OPENAI_API_KEY, preferences.preferred_ai_model || 'gpt-4o-mini');
+    
+    // Prepare playlist data
+    const playlistData = ContentPreparation.preparePlaylistData(playlist, videos.results || []);
+    
+    // Start enhancement record
+    const enhancementId = crypto.randomUUID();
+    await env.DB.prepare(`
+      INSERT INTO enhancement_history 
+      (id, playlist_id, user_id, enhancement_type, original_content, status, ai_model)
+      VALUES (?, ?, ?, 'description', ?, 'processing', ?)
+    `).bind(
+      enhancementId, playlistId, userData.userId, 
+      playlist.original_description || '', 
+      preferences.preferred_ai_model || 'gpt-4o-mini'
+    ).run();
+    
+    try {
+      // Enhance description
+      const enhancementResult = await aiClient.enhancePlaylistDescription(playlistData, {
+        style: preferences.enhancement_style || 'educational',
+        includeKeywords: Boolean(preferences.include_keywords),
+        includeLearningObjectives: Boolean(preferences.include_learning_objectives),
+        maxLength: 500
+      });
+      
+      if (!enhancementResult.success) {
+        throw new Error('AI enhancement request failed');
+      }
+      
+      const enhancedContent = ContentPreparation.sanitizeEnhancedContent(enhancementResult.content);
+      const metrics = ContentPreparation.extractMetrics(enhancementResult);
+      
+      // Update enhancement record
+      await env.DB.prepare(`
+        UPDATE enhancement_history 
+        SET enhanced_content = ?, tokens_used = ?, cost_usd = ?, 
+            processing_time_ms = ?, status = 'completed', 
+            completed_at = strftime('%s', 'now')
+        WHERE id = ?
+      `).bind(
+        enhancedContent, metrics.totalTokens, metrics.cost,
+        metrics.processingTime, enhancementId
+      ).run();
+      
+      // Update playlist
+      await PlaylistDB.update(env.DB, playlistId, {
+        aiDescription: enhancedContent,
+        enhanced: true
+      });
+      
+      // Track usage - simple implementation without external function
+      try {
+        await env.DB.prepare(`
+          INSERT INTO playlist_analytics 
+          (id, playlist_id, event_type, metadata, timestamp)
+          VALUES (?, ?, 'ai_enhancement_completed', ?, strftime('%s', 'now'))
+        `).bind(
+          crypto.randomUUID(),
+          playlistId,
+          JSON.stringify({
+            enhancementId,
+            tokensUsed: metrics.totalTokens,
+            cost: metrics.cost
+          })
+        ).run();
+      } catch (analyticsError) {
+        console.error('Analytics tracking failed:', analyticsError);
+        // Continue execution - analytics failure shouldn't break the enhancement
+      }
+      
+      return jsonResponse({
+        success: true,
+        enhancement: {
+          id: enhancementId,
+          originalDescription: playlist.original_description || '',
+          enhancedDescription: enhancedContent,
+          metrics: {
+            tokensUsed: metrics.totalTokens,
+            cost: metrics.cost,
+            processingTime: metrics.processingTime,
+            model: metrics.model
+          }
+        }
+      });
+      
+    } catch (aiError) {
+      // Update enhancement record with error
+      await env.DB.prepare(`
+        UPDATE enhancement_history 
+        SET status = 'failed', error_message = ?, 
+            completed_at = strftime('%s', 'now')
+        WHERE id = ?
+      `).bind(aiError.message, enhancementId).run();
+      
+      throw aiError;
+    }
+    
+  } catch (error) {
+    console.error('Enhancement error:', error);
+    return jsonResponse({ 
+      error: `Enhancement failed: ${error.message}` 
+    }, 500);
+  }
+}
+
+/**
+ * Get enhancement history for playlist
+ */
+async function handleGetEnhancement(request, env, playlistId) {
+  try {
+    const userData = await extractUserFromToken(request, env.JWT_SECRET);
+    
+    // Validate playlist ownership
+    const playlist = await PlaylistDB.findById(env.DB, playlistId);
+    if (!playlist || playlist.user_id !== userData.userId) {
+      return jsonResponse({ error: 'Playlist not found' }, 404);
+    }
+    
+    // Get enhancement history
+    const enhancements = await env.DB.prepare(`
+      SELECT * FROM enhancement_history 
+      WHERE playlist_id = ? 
+      ORDER BY created_at DESC 
+      LIMIT 10
+    `).bind(playlistId).all();
+    
+    return jsonResponse({
+      success: true,
+      enhancements: (enhancements.results || []).map(e => ({
+        id: e.id,
+        type: e.enhancement_type,
+        status: e.status,
+        originalContent: e.original_content,
+        enhancedContent: e.enhanced_content,
+        tokensUsed: e.tokens_used,
+        cost: e.cost_usd,
+        model: e.ai_model,
+        processingTime: e.processing_time_ms,
+        createdAt: e.created_at,
+        completedAt: e.completed_at,
+        errorMessage: e.error_message
+      }))
+    });
+    
+  } catch (error) {
+    return jsonResponse({ error: 'Unauthorized' }, 401);
+  }
+}
+
+/**
+ * Analyze playlist content
+ */
+async function handleAnalyzeContent(request, env, playlistId) {
+  try {
+    const userData = await extractUserFromToken(request, env.JWT_SECRET);
+    
+    // Validate playlist ownership
+    const playlist = await PlaylistDB.findById(env.DB, playlistId);
+    if (!playlist || playlist.user_id !== userData.userId) {
+      return jsonResponse({ error: 'Playlist not found' }, 404);
+    }
+    
+    // Get playlist videos
+    const videos = await env.DB.prepare(`
+      SELECT * FROM playlist_videos WHERE playlist_id = ? ORDER BY position
+    `).bind(playlistId).all();
+    
+    // Initialize analysis engine
+    const analysisEngine = new ContentAnalysisEngine(env.DB);
+    
+    // Perform analysis
+    const analysis = await analysisEngine.getComprehensiveAnalysis(playlistId, videos.results || []);
+    
+    return jsonResponse({
+      success: true,
+      analysis
+    });
+    
+  } catch (error) {
+    console.error('Analysis error:', error);
+    return jsonResponse({ 
+      error: `Analysis failed: ${error.message}` 
+    }, 500);
+  }
+}
+
+/**
+ * Get AI usage statistics
+ */
+async function handleGetAIUsage(request, env) {
+  try {
+    const userData = await extractUserFromToken(request, env.JWT_SECRET);
+    
+    // Get usage for last 30 days
+    const thirtyDaysAgo = Math.floor(Date.now() / 1000) - (30 * 24 * 60 * 60);
+    
+    const usage = await env.DB.prepare(`
+      SELECT 
+        DATE(created_at, 'unixepoch') as date,
+        COUNT(*) as requests,
+        SUM(tokens_used) as total_tokens,
+        SUM(cost_usd) as total_cost,
+        AVG(processing_time_ms) as avg_processing_time
+      FROM enhancement_history 
+      WHERE user_id = ? AND created_at > ? AND status = 'completed'
+      GROUP BY DATE(created_at, 'unixepoch')
+      ORDER BY date DESC
+    `).bind(userData.userId, thirtyDaysAgo).all();
+    
+    const totals = await env.DB.prepare(`
+      SELECT 
+        COUNT(*) as total_requests,
+        SUM(tokens_used) as total_tokens,
+        SUM(cost_usd) as total_cost
+      FROM enhancement_history 
+      WHERE user_id = ? AND status = 'completed'
+    `).bind(userData.userId).first();
+    
+    return jsonResponse({
+      success: true,
+      usage: {
+        daily: usage.results || [],
+        totals: totals || { total_requests: 0, total_tokens: 0, total_cost: 0 }
+      }
+    });
+    
+  } catch (error) {
+    return jsonResponse({ error: 'Unauthorized' }, 401);
+  }
+}
+
+/**
+ * Get user AI preferences
+ */
+async function handleGetAIPreferences(request, env) {
+  try {
+    const userData = await extractUserFromToken(request, env.JWT_SECRET);
+    
+    let preferences = await env.DB.prepare(`
+      SELECT * FROM user_ai_preferences WHERE user_id = ?
+    `).bind(userData.userId).first();
+    
+    if (!preferences) {
+      // Create default preferences
+      const prefsId = crypto.randomUUID();
+      await env.DB.prepare(`
+        INSERT INTO user_ai_preferences (id, user_id) VALUES (?, ?)
+      `).bind(prefsId, userData.userId).run();
+      
+      preferences = {
+        enhancement_style: 'educational',
+        auto_enhance: 0,
+        max_monthly_cost: 10.0,
+        preferred_ai_model: 'gpt-4o-mini',
+        language_preference: 'en',
+        content_level: 'intermediate',
+        include_keywords: 1,
+        include_learning_objectives: 1,
+        include_difficulty_assessment: 0
+      };
+    }
+    
+    return jsonResponse({
+      success: true,
+      preferences: {
+        enhancementStyle: preferences.enhancement_style,
+        autoEnhance: Boolean(preferences.auto_enhance),
+        maxMonthlyCost: preferences.max_monthly_cost,
+        preferredModel: preferences.preferred_ai_model,
+        language: preferences.language_preference,
+        contentLevel: preferences.content_level,
+        includeKeywords: Boolean(preferences.include_keywords),
+        includeLearningObjectives: Boolean(preferences.include_learning_objectives),
+        includeDifficultyAssessment: Boolean(preferences.include_difficulty_assessment)
+      }
+    });
+    
+  } catch (error) {
+    return jsonResponse({ error: 'Unauthorized' }, 401);
+  }
+}
+
+/**
+ * Update user AI preferences
+ */
+async function handleUpdateAIPreferences(request, env) {
+  try {
+    const userData = await extractUserFromToken(request, env.JWT_SECRET);
+    const data = await request.json();
+    
+    // Validate preferences
+    const updates = {};
+    if (data.enhancementStyle) updates.enhancement_style = data.enhancementStyle;
+    if (data.autoEnhance !== undefined) updates.auto_enhance = data.autoEnhance ? 1 : 0;
+    if (data.maxMonthlyCost) updates.max_monthly_cost = Math.max(1, Math.min(100, data.maxMonthlyCost));
+    if (data.preferredModel) updates.preferred_ai_model = data.preferredModel;
+    if (data.language) updates.language_preference = data.language;
+    if (data.contentLevel) updates.content_level = data.contentLevel;
+    if (data.includeKeywords !== undefined) updates.include_keywords = data.includeKeywords ? 1 : 0;
+    if (data.includeLearningObjectives !== undefined) updates.include_learning_objectives = data.includeLearningObjectives ? 1 : 0;
+    
+    // Update preferences
+    const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ');
+    const values = Object.values(updates);
+    values.push(userData.userId);
+    
+    await env.DB.prepare(`
+      UPDATE user_ai_preferences 
+      SET ${fields}, updated_at = strftime('%s', 'now')
+      WHERE user_id = ?
+    `).bind(...values).run();
+    
+    return jsonResponse({
+      success: true,
+      message: 'Preferences updated successfully'
+    });
+    
+  } catch (error) {
+    return jsonResponse({ error: 'Failed to update preferences' }, 500);
   }
 }
 
