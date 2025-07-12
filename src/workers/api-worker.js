@@ -26,15 +26,29 @@ export default {
     }
     
     try {
-      // Health check endpoint
-      if (url.pathname === '/api/health' && request.method === 'GET') {
-        return jsonResponse({ 
-          status: 'healthy', 
-          timestamp: Date.now(),
-          phase: 'Phase 2 - YouTube Integration',
-          features: ['auth', 'playlists', 'youtube-import', 'video-management']
-        });
+    // In your existing health check endpoint
+    if (url.pathname === '/api/health' && request.method === 'GET') {
+      const features = ['auth', 'playlists'];
+      
+      // Add Phase 2 features if available
+      if (env.YOUTUBE_API_KEY) {
+        features.push('youtube-import', 'video-management');
       }
+      
+      // Add Phase 3 features if available ✨
+      if (env.OPENAI_API_KEY) {
+        features.push('ai-enhancement', 'content-analysis');
+      }
+      
+      return jsonResponse({ 
+        status: 'healthy', 
+        timestamp: Date.now(),
+        phase: env.OPENAI_API_KEY ? 'Phase 3 - AI Enhancement' : 
+              env.YOUTUBE_API_KEY ? 'Phase 2 - YouTube Integration' : 
+              'Phase 1 - Basic Features',
+        features
+      });
+    }
       
       // === PHASE 1 ENDPOINTS (Auth & Basic Playlists) ===
       
