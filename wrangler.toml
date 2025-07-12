@@ -1,0 +1,79 @@
+# wrangler.toml - Cloudflare Workers configuration for AI Playlist Curator
+
+name = "playlist-ai"
+main = "src/workers/api-worker.js"
+compatibility_date = "2024-03-01"
+
+# Environment variables
+[vars]
+ENVIRONMENT = "development"
+
+# Secrets (set these via: wrangler secret put SECRET_NAME)
+# JWT_SECRET - for signing JWT tokens
+# Required secrets:
+# - JWT_SECRET
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "playlist-ai-db"
+database_id = "702d7210-6ee3-4462-9101-a41a3877068b"  # Replace with actual D1 database ID
+
+# KV namespace for sessions
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "d08b2f068c944da1ace819d9441bee68"  # Replace with actual KV namespace ID
+
+# R2 bucket for file storage (Phase 5)
+# [[r2_buckets]]
+# binding = "BUCKET"
+# bucket_name = "playlist-ai-files"
+
+# Routes for custom domains (optional)
+# routes = [
+#   { pattern = "api.playlist-ai.com/*", custom_domain = true }
+# ]
+
+# Worker settings
+[build]
+command = ""
+
+# Development settings
+[env.development]
+vars = { ENVIRONMENT = "development" }
+
+# Staging environment
+[env.staging]
+name = "playlist-ai-staging"
+vars = { ENVIRONMENT = "staging" }
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "playlist-ai-db-staging"
+database_id = "your-staging-d1-id"
+
+[[env.staging.kv_namespaces]]
+binding = "SESSIONS"
+id = "your-staging-kv-id"
+
+# Production environment
+[env.production]
+name = "playlist-ai-production"
+vars = { ENVIRONMENT = "production" }
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "playlist-ai-db-production"
+database_id = "your-production-d1-id"
+
+[[env.production.kv_namespaces]]
+binding = "SESSIONS"
+id = "your-production-kv-id"
+
+# Analytics and observability
+[observability]
+enabled = true
+
+# Limits and resources
+[limits]
+cpu_ms = 50
