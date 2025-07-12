@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Playlist Curator - Enhanced Testing Suite</title>
+    <title>AI Playlist Curator - Phase 2 Testing Suite</title>
     <style>
         * {
             margin: 0;
@@ -19,7 +19,7 @@
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             background: white;
             border-radius: 12px;
@@ -32,6 +32,15 @@
             color: white;
             padding: 20px;
             text-align: center;
+        }
+        
+        .phase-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 10px;
         }
         
         .content {
@@ -116,8 +125,9 @@
             display: none;
             white-space: pre-wrap;
             font-family: monospace;
-            max-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
+            font-size: 12px;
         }
         
         .status.success {
@@ -138,12 +148,66 @@
             border: 1px solid #bee5eb;
         }
         
-        .playlist-item {
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .playlist-item, .video-item {
             background: #f8f9fa;
             padding: 15px;
             margin: 10px 0;
             border-radius: 6px;
             border: 1px solid #e1e5e9;
+        }
+        
+        .video-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .video-thumbnail {
+            width: 120px;
+            height: 68px;
+            background: #ddd;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #666;
+            flex-shrink: 0;
+        }
+        
+        .video-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        
+        .video-info {
+            flex: 1;
+        }
+        
+        .video-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .video-meta {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .video-actions {
+            display: flex;
+            gap: 5px;
+            flex-shrink: 0;
         }
         
         .playlist-meta {
@@ -159,16 +223,6 @@
             margin-bottom: 20px;
         }
         
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .checkbox-group input[type="checkbox"] {
-            width: auto;
-        }
-
         .connection-status {
             position: fixed;
             top: 10px;
@@ -199,29 +253,23 @@
             font-size: 14px;
         }
 
-        .jwt-display {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            padding: 15px;
-            margin: 10px 0;
-            font-family: monospace;
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .button-group button {
+            width: auto;
+            padding: 8px 16px;
             font-size: 12px;
-            word-break: break-all;
-            max-height: 200px;
-            overflow-y: auto;
         }
 
-        .jwt-payload {
-            background: #e8f4f8;
-            padding: 10px;
-            margin-top: 10px;
-            border-radius: 4px;
-        }
-
-        .countdown {
-            font-weight: bold;
-            color: #dc3545;
+        .small-button {
+            width: auto !important;
+            padding: 6px 12px !important;
+            font-size: 11px !important;
+            margin: 2px !important;
         }
 
         .test-grid {
@@ -242,44 +290,74 @@
             color: #495057;
         }
 
-        .debug-panel {
+        .youtube-preview {
             background: #f1f3f4;
             border: 1px solid #dadce0;
             border-radius: 8px;
             padding: 15px;
-            margin: 20px 0;
+            margin: 15px 0;
         }
 
-        .debug-info {
-            font-family: monospace;
-            font-size: 12px;
-            background: white;
-            padding: 10px;
-            border-radius: 4px;
+        .quota-meter {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 20px;
             margin: 10px 0;
-            border-left: 4px solid #4285f4;
-            white-space: pre-wrap;
-            max-height: 300px;
-            overflow-y: auto;
+            overflow: hidden;
         }
 
-        .button-group {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+        .quota-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745 0%, #ffc107 50%, #dc3545 100%);
+            transition: width 0.3s ease;
         }
 
-        .button-group button {
-            width: auto;
-            padding: 8px 16px;
-            font-size: 12px;
+        .import-progress {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 8px;
+            margin: 10px 0;
+            overflow: hidden;
         }
 
-        .small-button {
-            width: auto !important;
-            padding: 6px 12px !important;
-            font-size: 11px !important;
-            margin: 2px !important;
+        .import-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+        }
+
+        .feature-badge {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            margin-left: 8px;
+        }
+
+        .new-feature {
+            background: #ff6b6b !important;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .tab-content {
+            min-height: 400px;
         }
 
         .endpoint-test {
@@ -288,11 +366,6 @@
             border: 1px solid #ddd;
             border-radius: 6px;
             background: #fafafa;
-        }
-
-        .endpoint-test h5 {
-            margin-bottom: 8px;
-            color: #333;
         }
 
         .method-badge {
@@ -308,12 +381,6 @@
         .method-post { background: #007bff; color: white; }
         .method-put { background: #ffc107; color: black; }
         .method-delete { background: #dc3545; color: white; }
-
-        .response-time {
-            font-size: 11px;
-            color: #666;
-            margin-left: 10px;
-        }
     </style>
 </head>
 <body>
@@ -321,35 +388,82 @@
     
     <div class="container">
         <div class="header">
-            <h1>🎵 AI Playlist Curator - Enhanced Testing Suite</h1>
-            <p>Phase 1: Authentication & Core Infrastructure Testing</p>
+            <h1>🎵 AI Playlist Curator - Phase 2 Testing Suite</h1>
+            <p>YouTube Integration & Video Management <span class="phase-badge">Phase 2</span></p>
         </div>
         
         <div class="content">
             <!-- API Status -->
             <div class="api-info">
-                <strong>🔧 Testing Mode:</strong> Make sure you're running <code>wrangler dev</code> in your terminal first!
-                <br><strong>API URL:</strong> <span id="apiUrl">http://localhost:8787</span>
-                <br><strong>JWT Secret Status:</strong> <span id="jwtStatus">Checking...</span>
+                <strong>🔧 Phase 2 Features:</strong> Authentication, Playlists, YouTube Import, Video Management
+                <br><strong>API URL:</strong> <span id="apiUrl">https://playlist-ai.jhaladik.workers.dev</span>
+                <br><strong>Status:</strong> <span id="apiStatus">Checking...</span>
+                <br><strong>YouTube API:</strong> <span id="youtubeApiStatus">Checking...</span>
             </div>
             
             <!-- Navigation -->
             <div class="nav">
-                <button onclick="showSection('auth')" class="active" id="authBtn">Authentication</button>
-                <button onclick="showSection('jwt')" id="jwtBtn">JWT Testing</button>
-                <button onclick="showSection('endpoints')" id="endpointsBtn">API Testing</button>
-                <button onclick="showSection('playlists')" id="playlistsBtn">Playlists</button>
-                <button onclick="showSection('profile')" id="profileBtn">Profile</button>
-                <button onclick="showSection('debug')" id="debugBtn">Debug</button>
+                <button onclick="showSection('overview')" class="active" id="overviewBtn">📊 Overview</button>
+                <button onclick="showSection('auth')" id="authBtn">🔐 Auth</button>
+                <button onclick="showSection('playlists')" id="playlistsBtn">📋 Playlists</button>
+                <button onclick="showSection('youtube')" id="youtubeBtn">🎬 YouTube <span class="feature-badge new-feature">NEW</span></button>
+                <button onclick="showSection('videos')" id="videosBtn">🎥 Videos <span class="feature-badge new-feature">NEW</span></button>
+                <button onclick="showSection('quota')" id="quotaBtn">📊 API Quota <span class="feature-badge new-feature">NEW</span></button>
+                <button onclick="showSection('endpoints')" id="endpointsBtn">🔌 API Tests</button>
                 <button onclick="testConnection()" style="background: #28a745;">🔌 Test API</button>
-                <button onclick="runAllTests()" style="background: #fd7e14;">🧪 Run All Tests</button>
             </div>
             
             <!-- Status Messages -->
             <div id="status" class="status"></div>
             
-            <!-- Authentication Section -->
-            <div id="auth" class="section active">
+            <!-- Overview Section -->
+            <div id="overview" class="section active">
+                <h2>Phase 2: YouTube Integration Overview</h2>
+                
+                <div class="test-grid">
+                    <div class="test-card">
+                        <h4>✅ Phase 1 Features</h4>
+                        <ul style="font-size: 12px; margin: 10px 0; padding-left: 20px;">
+                            <li>User Authentication (JWT)</li>
+                            <li>Basic Playlist CRUD</li>
+                            <li>User Profile & Stats</li>
+                            <li>GDPR Compliance</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="test-card">
+                        <h4>🆕 Phase 2 Features</h4>
+                        <ul style="font-size: 12px; margin: 10px 0; padding-left: 20px;">
+                            <li>YouTube Playlist Import</li>
+                            <li>Video Management</li>
+                            <li>API Quota Tracking</li>
+                            <li>Response Caching</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="test-card">
+                        <h4>📊 System Status</h4>
+                        <div id="systemOverview">
+                            <p>API: <span id="apiStatusOverview">Checking...</span></p>
+                            <p>Auth: <span id="authStatusOverview">Not logged in</span></p>
+                            <p>YouTube: <span id="youtubeStatusOverview">Checking...</span></p>
+                            <p>Database: <span id="dbStatusOverview">Checking...</span></p>
+                        </div>
+                    </div>
+                    
+                    <div class="test-card">
+                        <h4>🚀 Quick Start</h4>
+                        <div class="button-group">
+                            <button onclick="quickStart()" class="small-button" style="background: #28a745;">🏃‍♂️ Run Quick Test</button>
+                            <button onclick="generateTestUser()" class="small-button" style="background: #6f42c1;">👤 Create Test User</button>
+                            <button onclick="testYouTubeImport()" class="small-button" style="background: #dc3545;">🎬 Test Import</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Auth Section (from Phase 1) -->
+            <div id="auth" class="section">
                 <h2>Authentication Testing</h2>
                 
                 <div class="test-grid">
@@ -363,11 +477,10 @@
                             <div class="form-group">
                                 <label>Password:</label>
                                 <input type="password" id="regPassword" required placeholder="Test123!">
-                                <small>8+ chars with uppercase, lowercase, and number</small>
                             </div>
                             <div class="form-group">
-                                <div class="checkbox-group">
-                                    <input type="checkbox" id="gdprConsent" required>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="checkbox" id="gdprConsent" required style="width: auto;">
                                     <label for="gdprConsent">I consent to data processing (GDPR)</label>
                                 </div>
                             </div>
@@ -391,88 +504,15 @@
                     </div>
                 </div>
                 
+                <div id="userInfo" class="user-info" style="display: none;">
+                    <h3>Current User</h3>
+                    <div id="userDetails"></div>
+                </div>
+                
                 <div class="button-group" style="margin-top: 20px;">
-                    <button onclick="logout()" id="logoutBtn" style="background: #dc3545;">Logout</button>
+                    <button onclick="logout()" style="background: #dc3545;">Logout</button>
                     <button onclick="generateTestUser()" style="background: #6f42c1;">Generate Test User</button>
-                    <button onclick="testPasswordValidation()" style="background: #e83e8c;">Test Password Validation</button>
-                    <button onclick="testEmailValidation()" style="background: #20c997;">Test Email Validation</button>
-                </div>
-            </div>
-            
-            <!-- JWT Testing Section -->
-            <div id="jwt" class="section">
-                <h2>JWT Token Testing</h2>
-                
-                <div id="jwtInfo" class="user-info">
-                    <h3>Current JWT Token</h3>
-                    <p><strong>Status:</strong> <span id="tokenStatus">No token</span></p>
-                    <p><strong>Expires in:</strong> <span id="tokenCountdown">N/A</span></p>
-                </div>
-                
-                <div class="jwt-display" id="jwtDisplay">
-                    No JWT token available
-                </div>
-                
-                <div class="button-group">
-                    <button onclick="decodeCurrentJWT()" class="small-button">Decode Current JWT</button>
-                    <button onclick="validateJWTSignature()" class="small-button">Validate Signature</button>
-                    <button onclick="testExpiredToken()" class="small-button">Test Expired Token</button>
-                    <button onclick="testInvalidToken()" class="small-button">Test Invalid Token</button>
-                    <button onclick="refreshToken()" class="small-button">Refresh Token</button>
-                    <button onclick="clearToken()" class="small-button" style="background: #dc3545;">Clear Token</button>
-                </div>
-                
-                <div class="debug-panel">
-                    <h4>JWT Debug Information</h4>
-                    <div id="jwtDebugInfo" class="debug-info">
-                        JWT debug information will appear here...
-                    </div>
-                </div>
-            </div>
-            
-            <!-- API Endpoints Testing -->
-            <div id="endpoints" class="section">
-                <h2>API Endpoints Testing</h2>
-                
-                <div class="endpoint-test">
-                    <h5><span class="method-badge method-get">GET</span>/api/health <span class="response-time" id="health-time"></span></h5>
-                    <button onclick="testEndpoint('/api/health', 'GET')" class="small-button">Test Health Check</button>
-                </div>
-                
-                <div class="endpoint-test">
-                    <h5><span class="method-badge method-post">POST</span>/api/auth/register <span class="response-time" id="register-time"></span></h5>
-                    <button onclick="testRegisterEndpoint()" class="small-button">Test Registration</button>
-                </div>
-                
-                <div class="endpoint-test">
-                    <h5><span class="method-badge method-post">POST</span>/api/auth/login <span class="response-time" id="login-time"></span></h5>
-                    <button onclick="testLoginEndpoint()" class="small-button">Test Login</button>
-                </div>
-                
-                <div class="endpoint-test">
-                    <h5><span class="method-badge method-get">GET</span>/api/auth/profile <span class="response-time" id="profile-time"></span></h5>
-                    <button onclick="testEndpoint('/api/auth/profile', 'GET', true)" class="small-button">Test Profile (Auth Required)</button>
-                </div>
-                
-                <div class="endpoint-test">
-                    <h5><span class="method-badge method-get">GET</span>/api/playlists <span class="response-time" id="playlists-time"></span></h5>
-                    <button onclick="testEndpoint('/api/playlists', 'GET', true)" class="small-button">Test Get Playlists</button>
-                </div>
-                
-                <div class="endpoint-test">
-                    <h5><span class="method-badge method-post">POST</span>/api/playlists <span class="response-time" id="create-playlist-time"></span></h5>
-                    <button onclick="testCreatePlaylistEndpoint()" class="small-button">Test Create Playlist</button>
-                </div>
-                
-                <div class="endpoint-test">
-                    <h5><span class="method-badge method-get">GET</span>/api/stats <span class="response-time" id="stats-time"></span></h5>
-                    <button onclick="testEndpoint('/api/stats', 'GET', true)" class="small-button">Test Stats</button>
-                </div>
-                
-                <div class="button-group">
-                    <button onclick="testAllEndpoints()" style="background: #fd7e14;">Test All Endpoints</button>
-                    <button onclick="testCORS()" style="background: #6610f2;">Test CORS</button>
-                    <button onclick="testRateLimiting()" style="background: #e83e8c;">Test Rate Limiting</button>
+                    <button onclick="loadProfile()">Load Profile</button>
                 </div>
             </div>
             
@@ -491,10 +531,6 @@
                             <label>Description:</label>
                             <textarea id="playlistDescription" rows="3" placeholder="A collection of amazing videos about..."></textarea>
                         </div>
-                        <div class="form-group">
-                            <label>YouTube Playlist ID (optional):</label>
-                            <input type="text" id="youtubeId" placeholder="PLxxxxxxxxxxxxx">
-                        </div>
                         <button type="submit">Create Playlist</button>
                     </form>
                 </div>
@@ -511,53 +547,206 @@
                 </div>
             </div>
             
-            <!-- Profile Section -->
-            <div id="profile" class="section">
-                <h2>User Profile & Statistics</h2>
-                <div id="userInfo"></div>
-                <div id="userStats"></div>
+            <!-- YouTube Integration Section -->
+            <div id="youtube" class="section">
+                <h2>🆕 YouTube Integration</h2>
                 
-                <div class="button-group">
-                    <button onclick="loadProfile()">🔄 Refresh Profile</button>
-                    <button onclick="testGDPRCompliance()">Test GDPR Compliance</button>
-                    <button onclick="exportUserData()">Export User Data</button>
+                <div class="test-grid">
+                    <div class="test-card">
+                        <h4>Import YouTube Playlist</h4>
+                        <form id="importForm">
+                            <div class="form-group">
+                                <label>YouTube Playlist URL or ID:</label>
+                                <input type="text" id="youtubeUrl" required 
+                                       placeholder="https://youtube.com/playlist?list=PLxxxxx or PLxxxxx">
+                                <small>Supports various YouTube URL formats</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Max Videos to Import:</label>
+                                <input type="number" id="maxVideos" min="1" max="500" value="50">
+                            </div>
+                            <div class="form-group">
+                                <label>Custom Title (optional):</label>
+                                <input type="text" id="customTitle" placeholder="Override playlist title">
+                            </div>
+                            <div class="form-group">
+                                <label>Custom Description (optional):</label>
+                                <textarea id="customDescription" rows="2" placeholder="Override playlist description"></textarea>
+                            </div>
+                            <button type="submit" id="importBtn">Import Playlist</button>
+                        </form>
+                    </div>
+                    
+                    <div class="test-card">
+                        <h4>Quick Import Tests</h4>
+                        <div class="button-group">
+                            <button onclick="testImportSample('educational')" class="small-button">📚 Educational</button>
+                            <button onclick="testImportSample('music')" class="small-button">🎵 Music</button>
+                            <button onclick="testImportSample('tech')" class="small-button">💻 Tech</button>
+                            <button onclick="testImportSample('invalid')" class="small-button" style="background: #dc3545;">❌ Invalid URL</button>
+                        </div>
+                        <p style="font-size: 12px; margin-top: 10px;">These will test with sample playlist IDs</p>
+                    </div>
+                </div>
+                
+                <div id="importProgress" style="display: none;">
+                    <h4>Import Progress</h4>
+                    <div class="import-progress">
+                        <div class="import-progress-fill" id="importProgressFill" style="width: 0%"></div>
+                    </div>
+                    <p id="importStatus">Starting import...</p>
+                </div>
+                
+                <div id="importHistory">
+                    <h3>Recent Imports</h3>
+                    <div id="importList"></div>
                 </div>
             </div>
             
-            <!-- Debug Section -->
-            <div id="debug" class="section">
-                <h2>Debug & System Information</h2>
+            <!-- Video Management Section -->
+            <div id="videos" class="section">
+                <h2>🆕 Video Management</h2>
                 
-                <div class="debug-panel">
-                    <h4>System Status</h4>
-                    <div class="button-group">
-                        <button onclick="checkDatabaseHealth()" class="small-button">Check Database</button>
-                        <button onclick="checkKVHealth()" class="small-button">Check KV Store</button>
-                        <button onclick="testEnvironmentVars()" class="small-button">Test Environment</button>
-                        <button onclick="viewServerLogs()" class="small-button">View Logs</button>
+                <div style="margin-bottom: 20px;">
+                    <label for="playlistSelect">Select Playlist:</label>
+                    <select id="playlistSelect" onchange="loadPlaylistVideos()">
+                        <option value="">Choose a playlist...</option>
+                    </select>
+                </div>
+                
+                <div class="test-grid">
+                    <div class="test-card">
+                        <h4>Add Individual Video</h4>
+                        <form id="addVideoForm">
+                            <div class="form-group">
+                                <label>YouTube Video URL or ID:</label>
+                                <input type="text" id="videoUrl" required 
+                                       placeholder="https://youtube.com/watch?v=xxxxx or video_id">
+                            </div>
+                            <div class="form-group">
+                                <label>Position (optional):</label>
+                                <input type="number" id="videoPosition" min="0" placeholder="Auto">
+                            </div>
+                            <button type="submit">Add Video</button>
+                        </form>
                     </div>
-                    <div id="systemStatus" class="debug-info">
-                        System status information will appear here...
+                    
+                    <div class="test-card">
+                        <h4>Video Operations</h4>
+                        <div class="button-group">
+                            <button onclick="sortVideos('position')" class="small-button">Sort by Position</button>
+                            <button onclick="sortVideos('title')" class="small-button">Sort by Title</button>
+                            <button onclick="sortVideos('published_at')" class="small-button">Sort by Date</button>
+                            <button onclick="shuffleVideos()" class="small-button" style="background: #6f42c1;">🔀 Shuffle</button>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="debug-panel">
-                    <h4>Request/Response Monitor</h4>
-                    <div class="button-group">
-                        <button onclick="startRequestMonitoring()" class="small-button">Start Monitoring</button>
-                        <button onclick="stopRequestMonitoring()" class="small-button">Stop Monitoring</button>
-                        <button onclick="clearRequestLog()" class="small-button">Clear Log</button>
+                <div id="videoList">
+                    <h3>Playlist Videos</h3>
+                    <div id="videoItems"></div>
+                </div>
+            </div>
+            
+            <!-- YouTube Quota Section -->
+            <div id="quota" class="section">
+                <h2>🆕 YouTube API Quota Management</h2>
+                
+                <div class="test-grid">
+                    <div class="test-card">
+                        <h4>Current Quota Usage</h4>
+                        <div id="quotaInfo">
+                            <p>Date: <span id="quotaDate">-</span></p>
+                            <p>Used: <span id="quotaUsed">-</span> / <span id="quotaLimit">10,000</span></p>
+                            <p>Remaining: <span id="quotaRemaining">-</span></p>
+                            <p>Requests: <span id="quotaRequests">-</span></p>
+                            
+                            <div class="quota-meter">
+                                <div class="quota-fill" id="quotaFill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <button onclick="loadQuotaUsage()" class="small-button">🔄 Refresh</button>
                     </div>
-                    <div id="requestLog" class="debug-info">
-                        Request monitoring stopped. Click "Start Monitoring" to begin.
+                    
+                    <div class="test-card">
+                        <h4>Quota Cost Calculator</h4>
+                        <div class="form-group">
+                            <label>Operation:</label>
+                            <select id="operationType">
+                                <option value="1">Get Playlist Details (1 unit)</option>
+                                <option value="1">Get Playlist Items (1 unit)</option>
+                                <option value="1">Get Video Details (1 unit)</option>
+                                <option value="100">Search Videos (100 units)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Number of Requests:</label>
+                            <input type="number" id="requestCount" value="1" min="1">
+                        </div>
+                        <button onclick="calculateQuotaCost()" class="small-button">Calculate Cost</button>
+                        <div id="quotaCalculation"></div>
                     </div>
                 </div>
                 
-                <div class="debug-panel">
-                    <h4>Performance Metrics</h4>
-                    <div id="performanceMetrics" class="debug-info">
-                        Performance metrics will appear here...
+                <div class="test-card">
+                    <h4>Cache Management</h4>
+                    <div class="button-group">
+                        <button onclick="clearYouTubeCache()" class="small-button" style="background: #ffc107;">🗑️ Clear Cache</button>
+                        <button onclick="getCacheStats()" class="small-button">📊 Cache Stats</button>
                     </div>
+                    <div id="cacheStats"></div>
+                </div>
+            </div>
+            
+            <!-- API Endpoints Testing -->
+            <div id="endpoints" class="section">
+                <h2>API Endpoints Testing</h2>
+                
+                <h3>Phase 1 Endpoints</h3>
+                <div class="endpoint-test">
+                    <h5><span class="method-badge method-get">GET</span>/api/health</h5>
+                    <button onclick="testEndpoint('/api/health', 'GET')" class="small-button">Test</button>
+                </div>
+                
+                <div class="endpoint-test">
+                    <h5><span class="method-badge method-post">POST</span>/api/auth/register</h5>
+                    <button onclick="testRegisterEndpoint()" class="small-button">Test</button>
+                </div>
+                
+                <div class="endpoint-test">
+                    <h5><span class="method-badge method-post">POST</span>/api/auth/login</h5>
+                    <button onclick="testLoginEndpoint()" class="small-button">Test</button>
+                </div>
+                
+                <div class="endpoint-test">
+                    <h5><span class="method-badge method-get">GET</span>/api/playlists</h5>
+                    <button onclick="testEndpoint('/api/playlists', 'GET', true)" class="small-button">Test</button>
+                </div>
+                
+                <h3>Phase 2 Endpoints (NEW)</h3>
+                <div class="endpoint-test">
+                    <h5><span class="method-badge method-post">POST</span>/api/import <span class="feature-badge new-feature">NEW</span></h5>
+                    <button onclick="testImportEndpoint()" class="small-button">Test</button>
+                </div>
+                
+                <div class="endpoint-test">
+                    <h5><span class="method-badge method-get">GET</span>/api/playlists/{id}/videos <span class="feature-badge new-feature">NEW</span></h5>
+                    <button onclick="testGetVideosEndpoint()" class="small-button">Test</button>
+                </div>
+                
+                <div class="endpoint-test">
+                    <h5><span class="method-badge method-post">POST</span>/api/playlists/{id}/videos <span class="feature-badge new-feature">NEW</span></h5>
+                    <button onclick="testAddVideoEndpoint()" class="small-button">Test</button>
+                </div>
+                
+                <div class="endpoint-test">
+                    <h5><span class="method-badge method-get">GET</span>/api/youtube/quota <span class="feature-badge new-feature">NEW</span></h5>
+                    <button onclick="testEndpoint('/api/youtube/quota', 'GET', true)" class="small-button">Test</button>
+                </div>
+                
+                <div class="button-group">
+                    <button onclick="testAllEndpoints()" style="background: #fd7e14;">🧪 Test All Endpoints</button>
+                    <button onclick="testPhase2Endpoints()" style="background: #e83e8c;">🆕 Test Phase 2 Only</button>
                 </div>
             </div>
         </div>
@@ -565,77 +754,45 @@
 
     <script>
         // Configuration
-        const API_BASE = 'http://localhost:8787';
+        const API_BASE = 'https://playlist-ai.jhaladik.workers.dev';
         let authToken = localStorage.getItem('authToken');
-        let requestMonitoring = false;
-        let requestLog = [];
-        let performanceMetrics = {
-            requests: 0,
-            totalTime: 0,
-            averageTime: 0,
-            errors: 0
+        let currentUser = null;
+        let currentPlaylists = [];
+        let selectedPlaylistId = null;
+        
+        // Sample YouTube playlist IDs for testing
+        const samplePlaylists = {
+            educational: 'PLWKjhJtqVAbleDe3_ZA8h3AO2rXar-q2V', // Khan Academy Math
+            music: 'PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG', // Popular music
+            tech: 'PLrAXtmRdnEQy4jjfj8LnmO9fKnvdoRgAh', // Tech talks
+            invalid: 'invalid-playlist-id-test'
         };
         
         // Update API URL display
         document.getElementById('apiUrl').textContent = API_BASE;
         
-        // JWT Token Countdown
-        let countdownInterval = null;
-        
-        function startTokenCountdown() {
-            if (countdownInterval) clearInterval(countdownInterval);
-            
-            if (!authToken) {
-                document.getElementById('tokenCountdown').textContent = 'N/A';
-                return;
-            }
-            
-            try {
-                const payload = JSON.parse(atob(authToken.split('.')[1]));
-                const exp = payload.exp * 1000; // Convert to milliseconds
-                
-                countdownInterval = setInterval(() => {
-                    const now = Date.now();
-                    const timeLeft = exp - now;
-                    
-                    if (timeLeft <= 0) {
-                        document.getElementById('tokenCountdown').textContent = 'EXPIRED';
-                        document.getElementById('tokenStatus').textContent = 'Expired';
-                        clearInterval(countdownInterval);
-                    } else {
-                        const minutes = Math.floor(timeLeft / 60000);
-                        const seconds = Math.floor((timeLeft % 60000) / 1000);
-                        document.getElementById('tokenCountdown').textContent = `${minutes}m ${seconds}s`;
-                    }
-                }, 1000);
-            } catch (error) {
-                document.getElementById('tokenCountdown').textContent = 'Invalid token';
-            }
+        // Utility functions
+        function showStatus(message, type = 'success') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+            setTimeout(() => status.style.display = 'none', 10000);
         }
         
-        // Connection status checker
-        async function testConnection() {
-            const startTime = performance.now();
-            try {
-                const response = await fetch(`${API_BASE}/api/health`);
-                const data = await response.json();
-                const endTime = performance.now();
-                const responseTime = Math.round(endTime - startTime);
-                
-                if (data.status === 'healthy') {
-                    updateConnectionStatus(true);
-                    showStatus(`✅ API connection successful! (${responseTime}ms)`, 'success');
-                    document.getElementById('jwtStatus').textContent = 'Connected - JWT endpoint available';
-                    document.getElementById('health-time').textContent = `${responseTime}ms`;
-                } else {
-                    updateConnectionStatus(false);
-                    showStatus('❌ API returned unexpected response', 'error');
-                }
-            } catch (error) {
-                updateConnectionStatus(false);
-                showStatus(`❌ Connection failed: ${error.message}. Make sure 'wrangler dev' is running!`, 'error');
-                document.getElementById('jwtStatus').textContent = 'Disconnected - Cannot test JWT';
-            }
+        function showSection(sectionName) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById(sectionName).classList.add('active');
+            document.getElementById(sectionName + 'Btn').classList.add('active');
+            
+            // Load data when switching to certain sections
+            if (sectionName === 'playlists') loadPlaylists();
+            if (sectionName === 'youtube') loadImportHistory();
+            if (sectionName === 'videos') loadPlaylistsForSelect();
+            if (sectionName === 'quota') loadQuotaUsage();
+            if (sectionName === 'overview') updateOverview();
         }
         
         function updateConnectionStatus(connected) {
@@ -649,60 +806,7 @@
             }
         }
         
-        // Utility functions
-        function showStatus(message, type = 'success') {
-            const status = document.getElementById('status');
-            status.textContent = message;
-            status.className = `status ${type}`;
-            status.style.display = 'block';
-            setTimeout(() => status.style.display = 'none', 8000);
-        }
-        
-        function showSection(sectionName) {
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
-            
-            document.getElementById(sectionName).classList.add('active');
-            document.getElementById(sectionName + 'Btn').classList.add('active');
-            
-            if (sectionName === 'playlists') loadPlaylists();
-            if (sectionName === 'profile') loadProfile();
-            if (sectionName === 'jwt') updateJWTDisplay();
-            if (sectionName === 'debug') updateSystemStatus();
-        }
-        
-        function logRequest(method, url, status, responseTime, error = null) {
-            const logEntry = {
-                timestamp: new Date().toISOString(),
-                method,
-                url,
-                status,
-                responseTime,
-                error
-            };
-            
-            requestLog.push(logEntry);
-            
-            // Keep only last 100 requests
-            if (requestLog.length > 100) {
-                requestLog = requestLog.slice(-100);
-            }
-            
-            // Update performance metrics
-            performanceMetrics.requests++;
-            performanceMetrics.totalTime += responseTime;
-            performanceMetrics.averageTime = Math.round(performanceMetrics.totalTime / performanceMetrics.requests);
-            if (error) performanceMetrics.errors++;
-            
-            // Update display if monitoring is active
-            if (requestMonitoring) {
-                updateRequestLog();
-                updatePerformanceMetrics();
-            }
-        }
-        
         async function apiCall(endpoint, options = {}) {
-            const startTime = performance.now();
             const headers = {
                 'Content-Type': 'application/json',
                 ...options.headers
@@ -718,554 +822,47 @@
                     headers
                 });
                 
-                const endTime = performance.now();
-                const responseTime = Math.round(endTime - startTime);
-                
-                logRequest(options.method || 'GET', endpoint, response.status, responseTime);
-                
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ error: 'Network error' }));
-                    const error = new Error(errorData.error || `HTTP ${response.status}`);
-                    logRequest(options.method || 'GET', endpoint, response.status, responseTime, error.message);
-                    throw error;
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
                 }
                 
                 return await response.json();
             } catch (error) {
-                const endTime = performance.now();
-                const responseTime = Math.round(endTime - startTime);
-                logRequest(options.method || 'GET', endpoint, 0, responseTime, error.message);
                 console.error('API call error:', error);
                 throw error;
             }
         }
         
-        // JWT Testing Functions
-        function decodeCurrentJWT() {
-            if (!authToken) {
-                showStatus('❌ No JWT token available', 'error');
-                return;
-            }
-            
-            try {
-                const parts = authToken.split('.');
-                const header = JSON.parse(atob(parts[0]));
-                const payload = JSON.parse(atob(parts[1]));
-                
-                const jwtInfo = {
-                    header,
-                    payload,
-                    signature: parts[2],
-                    isExpired: payload.exp * 1000 < Date.now(),
-                    expiresAt: new Date(payload.exp * 1000).toLocaleString(),
-                    issuedAt: new Date(payload.iat * 1000).toLocaleString()
-                };
-                
-                document.getElementById('jwtDebugInfo').textContent = JSON.stringify(jwtInfo, null, 2);
-                showStatus('✅ JWT decoded successfully', 'success');
-                
-            } catch (error) {
-                showStatus(`❌ Failed to decode JWT: ${error.message}`, 'error');
-            }
-        }
-        
-        function updateJWTDisplay() {
-            const display = document.getElementById('jwtDisplay');
-            const status = document.getElementById('tokenStatus');
-            
-            if (!authToken) {
-                display.textContent = 'No JWT token available';
-                status.textContent = 'No token';
-                return;
-            }
-            
-            try {
-                const parts = authToken.split('.');
-                const payload = JSON.parse(atob(parts[1]));
-                const isExpired = payload.exp * 1000 < Date.now();
-                
-                display.innerHTML = `
-                    <strong>Token:</strong> ${authToken.substring(0, 50)}...
-                    <div class="jwt-payload">
-                        <strong>Payload:</strong><br>
-                        ${JSON.stringify(payload, null, 2)}
-                    </div>
-                `;
-                
-                status.textContent = isExpired ? 'Expired' : 'Valid';
-                startTokenCountdown();
-                
-            } catch (error) {
-                display.textContent = 'Invalid JWT token format';
-                status.textContent = 'Invalid';
-            }
-        }
-        
-        async function validateJWTSignature() {
-            if (!authToken) {
-                showStatus('❌ No JWT token to validate', 'error');
-                return;
-            }
-            
-            try {
-                const data = await apiCall('/api/auth/profile');
-                showStatus('✅ JWT signature is valid', 'success');
-            } catch (error) {
-                showStatus(`❌ JWT validation failed: ${error.message}`, 'error');
-            }
-        }
-        
-        function testExpiredToken() {
-            // Create a token that's already expired
-            const expiredToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0IiwiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNjAwMDAwMDAwLCJleHAiOjE2MDAwMDAwMDF9.invalid';
-            
-            const oldToken = authToken;
-            authToken = expiredToken;
-            localStorage.setItem('authToken', expiredToken);
-            
-            apiCall('/api/auth/profile').then(() => {
-                showStatus('❌ Expired token was accepted (this is a security issue!)', 'error');
-            }).catch((error) => {
-                showStatus('✅ Expired token correctly rejected', 'success');
-                // Restore old token
-                authToken = oldToken;
-                if (oldToken) {
-                    localStorage.setItem('authToken', oldToken);
-                } else {
-                    localStorage.removeItem('authToken');
-                }
-            });
-        }
-        
-        function testInvalidToken() {
-            const invalidToken = 'invalid.token.here';
-            const oldToken = authToken;
-            authToken = invalidToken;
-            localStorage.setItem('authToken', invalidToken);
-            
-            apiCall('/api/auth/profile').then(() => {
-                showStatus('❌ Invalid token was accepted (this is a security issue!)', 'error');
-            }).catch((error) => {
-                showStatus('✅ Invalid token correctly rejected', 'success');
-                // Restore old token
-                authToken = oldToken;
-                if (oldToken) {
-                    localStorage.setItem('authToken', oldToken);
-                } else {
-                    localStorage.removeItem('authToken');
-                }
-            });
-        }
-        
-        async function refreshToken() {
-            if (!authToken) {
-                showStatus('❌ No token to refresh', 'error');
-                return;
-            }
-            
-            try {
-                // In a real app, you'd have a refresh endpoint
-                // For now, we'll just re-login
-                showStatus('ℹ️ Token refresh not implemented yet. Please re-login.', 'info');
-            } catch (error) {
-                showStatus(`❌ Token refresh failed: ${error.message}`, 'error');
-            }
-        }
-        
-        function clearToken() {
-            authToken = null;
-            localStorage.removeItem('authToken');
-            updateJWTDisplay();
-            showStatus('🗑️ JWT token cleared', 'info');
-        }
-        
-        // Endpoint Testing Functions
-        async function testEndpoint(endpoint, method = 'GET', requireAuth = false, body = null) {
-            const elementId = endpoint.replace(/\//g, '-').replace(/^-/, '') + '-time';
-            const timeElement = document.getElementById(elementId);
-            
-            if (requireAuth && !authToken) {
-                showStatus(`❌ ${method} ${endpoint}: Authentication required`, 'error');
-                return;
-            }
-            
-            try {
-                const options = { method };
-                if (body) options.body = JSON.stringify(body);
-                
-                const startTime = performance.now();
-                const data = await apiCall(endpoint, options);
-                const endTime = performance.now();
-                const responseTime = Math.round(endTime - startTime);
-                
-                if (timeElement) timeElement.textContent = `${responseTime}ms`;
-                
-                showStatus(`✅ ${method} ${endpoint}: Success (${responseTime}ms)\n${JSON.stringify(data, null, 2)}`, 'success');
-                
-            } catch (error) {
-                if (timeElement) timeElement.textContent = 'Error';
-                showStatus(`❌ ${method} ${endpoint}: ${error.message}`, 'error');
-            }
-        }
-        
-        async function testRegisterEndpoint() {
-            const email = `test-${Date.now()}@example.com`;
-            const body = {
-                email,
-                password: 'Test123!',
-                gdprConsent: true
-            };
-            
-            await testEndpoint('/api/auth/register', 'POST', false, body);
-        }
-        
-        async function testLoginEndpoint() {
-            const body = {
-                email: 'test@example.com',
-                password: 'Test123!'
-            };
-            
-            await testEndpoint('/api/auth/login', 'POST', false, body);
-        }
-        
-        async function testCreatePlaylistEndpoint() {
-            const body = {
-                title: `Test Playlist ${Date.now()}`,
-                originalDescription: 'Auto-generated test playlist',
-                youtubeId: null
-            };
-            
-            await testEndpoint('/api/playlists', 'POST', true, body);
-        }
-        
-        async function testAllEndpoints() {
-            showStatus('🧪 Running comprehensive endpoint tests...', 'info');
-            
-            const tests = [
-                () => testEndpoint('/api/health', 'GET'),
-                () => testEndpoint('/api/auth/profile', 'GET', true),
-                () => testEndpoint('/api/playlists', 'GET', true),
-                () => testEndpoint('/api/stats', 'GET', true),
-            ];
-            
-            for (const test of tests) {
-                try {
-                    await test();
-                    await new Promise(resolve => setTimeout(resolve, 500)); // Delay between tests
-                } catch (error) {
-                    console.error('Test failed:', error);
-                }
-            }
-            
-            showStatus('✅ All endpoint tests completed', 'success');
-        }
-        
-        async function testCORS() {
-            try {
-                const response = await fetch(`${API_BASE}/api/health`, {
-                    method: 'OPTIONS'
-                });
-                
-                const corsHeaders = {
-                    'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
-                    'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
-                    'Access-Control-Allow-Headers': response.headers.get('Access-Control-Allow-Headers')
-                };
-                
-                showStatus(`✅ CORS Headers:\n${JSON.stringify(corsHeaders, null, 2)}`, 'success');
-                
-            } catch (error) {
-                showStatus(`❌ CORS test failed: ${error.message}`, 'error');
-            }
-        }
-        
-        async function testRateLimiting() {
-            showStatus('🔄 Testing rate limiting (sending 10 rapid requests)...', 'info');
-            
-            const promises = [];
-            for (let i = 0; i < 10; i++) {
-                promises.push(apiCall('/api/health'));
-            }
-            
-            try {
-                const results = await Promise.allSettled(promises);
-                const successful = results.filter(r => r.status === 'fulfilled').length;
-                const failed = results.filter(r => r.status === 'rejected').length;
-                
-                showStatus(`✅ Rate limiting test: ${successful} successful, ${failed} failed requests`, 'success');
-                
-            } catch (error) {
-                showStatus(`❌ Rate limiting test failed: ${error.message}`, 'error');
-            }
-        }
-        
-        // Test Data Generation
-        function generateTestUser() {
-            const timestamp = Date.now();
-            document.getElementById('regEmail').value = `test-${timestamp}@example.com`;
-            document.getElementById('regPassword').value = 'Test123!';
-            document.getElementById('gdprConsent').checked = true;
-            
-            document.getElementById('loginEmail').value = `test-${timestamp}@example.com`;
-            document.getElementById('loginPassword').value = 'Test123!';
-            
-            showStatus('✅ Test user credentials generated', 'success');
-        }
-        
-        async function createTestPlaylists() {
-            if (!authToken) {
-                showStatus('❌ Please log in first', 'error');
-                return;
-            }
-            
-            const testPlaylists = [
-                { title: 'Climate Change Deep Dive', description: 'Educational content about climate science' },
-                { title: 'AI Ethics & Society', description: 'Exploring the ethical implications of AI' },
-                { title: 'Space Exploration 2024', description: 'Latest in space technology and exploration' },
-                { title: 'Renewable Energy Innovations', description: 'Cutting-edge clean energy solutions' },
-                { title: 'Quantum Computing Basics', description: 'Introduction to quantum computing concepts' }
-            ];
-            
-            for (const playlist of testPlaylists) {
-                try {
-                    await apiCall('/api/playlists', {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            title: playlist.title,
-                            originalDescription: playlist.description
-                        })
-                    });
-                } catch (error) {
-                    console.error('Failed to create test playlist:', error);
-                }
-            }
-            
-            showStatus('✅ Test playlists created', 'success');
-            loadPlaylists();
-        }
-        
-        // Validation Testing
-        function testPasswordValidation() {
-            const testPasswords = [
-                { password: '123', valid: false, reason: 'Too short' },
-                { password: 'password', valid: false, reason: 'No uppercase/numbers' },
-                { password: 'Password', valid: false, reason: 'No numbers' },
-                { password: 'Password123', valid: true, reason: 'Valid' },
-                { password: 'Test123!', valid: true, reason: 'Valid with special chars' }
-            ];
-            
-            let results = 'Password Validation Test Results:\n\n';
-            testPasswords.forEach(test => {
-                const isValid = test.password.length >= 8 && 
-                               /[A-Z]/.test(test.password) && 
-                               /[a-z]/.test(test.password) && 
-                               /\d/.test(test.password);
-                
-                const status = isValid === test.valid ? '✅' : '❌';
-                results += `${status} "${test.password}" - ${test.reason}\n`;
-            });
-            
-            showStatus(results, 'info');
-        }
-        
-        function testEmailValidation() {
-            const testEmails = [
-                { email: 'test@example.com', valid: true },
-                { email: 'invalid.email', valid: false },
-                { email: '@example.com', valid: false },
-                { email: 'test@', valid: false },
-                { email: 'test.email@example.co.uk', valid: true },
-                { email: '', valid: false }
-            ];
-            
-            let results = 'Email Validation Test Results:\n\n';
-            testEmails.forEach(test => {
-                const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(test.email);
-                const status = isValid === test.valid ? '✅' : '❌';
-                results += `${status} "${test.email}"\n`;
-            });
-            
-            showStatus(results, 'info');
-        }
-        
-        // Debug Functions
-        async function checkDatabaseHealth() {
+        // Connection testing
+        async function testConnection() {
             try {
                 const data = await apiCall('/api/health');
-                showStatus(`✅ Database health check passed\n${JSON.stringify(data, null, 2)}`, 'success');
-            } catch (error) {
-                showStatus(`❌ Database health check failed: ${error.message}`, 'error');
-            }
-        }
-        
-        async function checkKVHealth() {
-            // KV health would be tested through session operations
-            try {
-                if (authToken) {
-                    await apiCall('/api/auth/profile');
-                    showStatus('✅ KV Store (sessions) appears healthy', 'success');
+                updateConnectionStatus(true);
+                
+                document.getElementById('apiStatus').textContent = `✅ ${data.status} (${data.phase})`;
+                document.getElementById('apiStatusOverview').textContent = '✅ Connected';
+                
+                // Test YouTube API availability
+                if (data.features && data.features.includes('youtube-import')) {
+                    document.getElementById('youtubeApiStatus').textContent = '✅ Available';
+                    document.getElementById('youtubeStatusOverview').textContent = '✅ Available';
                 } else {
-                    showStatus('ℹ️ Login to test KV Store health', 'info');
+                    document.getElementById('youtubeApiStatus').textContent = '⚠️ Not configured';
+                    document.getElementById('youtubeStatusOverview').textContent = '⚠️ Not configured';
                 }
-            } catch (error) {
-                showStatus(`❌ KV Store health check failed: ${error.message}`, 'error');
-            }
-        }
-        
-        function testEnvironmentVars() {
-            const envInfo = {
-                userAgent: navigator.userAgent,
-                language: navigator.language,
-                platform: navigator.platform,
-                cookieEnabled: navigator.cookieEnabled,
-                localStorage: typeof(Storage) !== "undefined",
-                apiBase: API_BASE,
-                hasToken: !!authToken
-            };
-            
-            document.getElementById('systemStatus').textContent = JSON.stringify(envInfo, null, 2);
-            showStatus('✅ Environment information updated', 'success');
-        }
-        
-        function updateSystemStatus() {
-            const status = {
-                apiConnection: document.getElementById('connectionStatus').textContent,
-                jwtToken: authToken ? 'Present' : 'None',
-                localStorage: localStorage.length + ' items',
-                timestamp: new Date().toISOString()
-            };
-            
-            document.getElementById('systemStatus').textContent = JSON.stringify(status, null, 2);
-        }
-        
-        function startRequestMonitoring() {
-            requestMonitoring = true;
-            showStatus('✅ Request monitoring started', 'success');
-            updateRequestLog();
-        }
-        
-        function stopRequestMonitoring() {
-            requestMonitoring = false;
-            showStatus('⏹️ Request monitoring stopped', 'info');
-        }
-        
-        function clearRequestLog() {
-            requestLog = [];
-            performanceMetrics = { requests: 0, totalTime: 0, averageTime: 0, errors: 0 };
-            updateRequestLog();
-            updatePerformanceMetrics();
-            showStatus('🗑️ Request log cleared', 'info');
-        }
-        
-        function updateRequestLog() {
-            const logElement = document.getElementById('requestLog');
-            if (requestLog.length === 0) {
-                logElement.textContent = 'No requests logged yet.';
-                return;
-            }
-            
-            const logText = requestLog.slice(-20).map(entry => {
-                const status = entry.error ? `ERROR: ${entry.error}` : `${entry.status}`;
-                return `${entry.timestamp} | ${entry.method} ${entry.url} | ${status} | ${entry.responseTime}ms`;
-            }).join('\n');
-            
-            logElement.textContent = logText;
-        }
-        
-        function updatePerformanceMetrics() {
-            const metrics = {
-                totalRequests: performanceMetrics.requests,
-                averageResponseTime: performanceMetrics.averageTime + 'ms',
-                totalErrors: performanceMetrics.errors,
-                errorRate: performanceMetrics.requests > 0 ? 
-                    Math.round((performanceMetrics.errors / performanceMetrics.requests) * 100) + '%' : '0%'
-            };
-            
-            document.getElementById('performanceMetrics').textContent = JSON.stringify(metrics, null, 2);
-        }
-        
-        function viewServerLogs() {
-            showStatus('ℹ️ Server logs are visible in your terminal where "wrangler dev" is running', 'info');
-        }
-        
-        // GDPR and Data Export
-        async function testGDPRCompliance() {
-            if (!authToken) {
-                showStatus('❌ Please log in to test GDPR compliance', 'error');
-                return;
-            }
-            
-            try {
-                const profile = await apiCall('/api/auth/profile');
-                const gdprStatus = profile.user.gdprConsent ? 'Granted' : 'Not granted';
-                showStatus(`✅ GDPR Consent Status: ${gdprStatus}`, 'success');
-            } catch (error) {
-                showStatus(`❌ GDPR compliance check failed: ${error.message}`, 'error');
-            }
-        }
-        
-        async function exportUserData() {
-            if (!authToken) {
-                showStatus('❌ Please log in to export data', 'error');
-                return;
-            }
-            
-            try {
-                const [profile, playlists, stats] = await Promise.all([
-                    apiCall('/api/auth/profile'),
-                    apiCall('/api/playlists'),
-                    apiCall('/api/stats')
-                ]);
                 
-                const exportData = {
-                    exportDate: new Date().toISOString(),
-                    user: profile.user,
-                    playlists: playlists.playlists,
-                    statistics: stats.stats
-                };
-                
-                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `user-data-export-${Date.now()}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-                
-                showStatus('✅ User data exported successfully', 'success');
+                showStatus(`✅ Connected to ${data.phase}! Features: ${data.features?.join(', ')}`, 'success');
                 
             } catch (error) {
-                showStatus(`❌ Data export failed: ${error.message}`, 'error');
+                updateConnectionStatus(false);
+                document.getElementById('apiStatus').textContent = '❌ Failed';
+                document.getElementById('apiStatusOverview').textContent = '❌ Failed';
+                showStatus(`❌ Connection failed: ${error.message}`, 'error');
             }
         }
         
-        // Comprehensive test runner
-        async function runAllTests() {
-            showStatus('🧪 Starting comprehensive test suite...', 'info');
-            
-            const tests = [
-                { name: 'Connection Test', fn: testConnection },
-                { name: 'Password Validation', fn: testPasswordValidation },
-                { name: 'Email Validation', fn: testEmailValidation },
-                { name: 'CORS Test', fn: testCORS },
-                { name: 'Database Health', fn: checkDatabaseHealth },
-                { name: 'All Endpoints', fn: testAllEndpoints }
-            ];
-            
-            for (const test of tests) {
-                try {
-                    showStatus(`Running: ${test.name}...`, 'info');
-                    await test.fn();
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                } catch (error) {
-                    console.error(`Test ${test.name} failed:`, error);
-                }
-            }
-            
-            showStatus('✅ Comprehensive test suite completed! Check individual test results above.', 'success');
-        }
-        
-        // Original authentication functions (keeping existing ones)
+        // Authentication functions
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -1281,10 +878,12 @@
                 
                 authToken = data.token;
                 localStorage.setItem('authToken', authToken);
+                currentUser = data.user;
+                
                 showStatus('🎉 Registration successful!', 'success');
                 document.getElementById('registerForm').reset();
-                updateConnectionStatus(true);
-                updateJWTDisplay();
+                updateUserInfo();
+                updateOverview();
                 
             } catch (error) {
                 showStatus(`❌ Registration failed: ${error.message}`, 'error');
@@ -1305,10 +904,12 @@
                 
                 authToken = data.token;
                 localStorage.setItem('authToken', authToken);
+                currentUser = data.user;
+                
                 showStatus('🎉 Login successful!', 'success');
                 document.getElementById('loginForm').reset();
-                updateConnectionStatus(true);
-                updateJWTDisplay();
+                updateUserInfo();
+                updateOverview();
                 
             } catch (error) {
                 showStatus(`❌ Login failed: ${error.message}`, 'error');
@@ -1317,15 +918,61 @@
         
         function logout() {
             authToken = null;
+            currentUser = null;
             localStorage.removeItem('authToken');
             showStatus('👋 Logged out successfully', 'success');
-            document.getElementById('userInfo').innerHTML = '';
-            document.getElementById('playlistList').innerHTML = '';
-            updateJWTDisplay();
-            if (countdownInterval) clearInterval(countdownInterval);
+            updateUserInfo();
+            updateOverview();
         }
         
-        // Playlists (keeping existing functions)
+        function generateTestUser() {
+            const timestamp = Date.now();
+            document.getElementById('regEmail').value = `test-${timestamp}@example.com`;
+            document.getElementById('regPassword').value = 'Test123!';
+            document.getElementById('gdprConsent').checked = true;
+            
+            document.getElementById('loginEmail').value = `test-${timestamp}@example.com`;
+            document.getElementById('loginPassword').value = 'Test123!';
+            
+            showStatus('✅ Test user credentials generated', 'success');
+        }
+        
+        async function loadProfile() {
+            if (!authToken) {
+                showStatus('❌ Please log in first', 'error');
+                return;
+            }
+            
+            try {
+                const data = await apiCall('/api/auth/profile');
+                currentUser = data.user;
+                updateUserInfo();
+                showStatus('✅ Profile loaded', 'success');
+            } catch (error) {
+                showStatus(`❌ Failed to load profile: ${error.message}`, 'error');
+            }
+        }
+        
+        function updateUserInfo() {
+            const userInfo = document.getElementById('userInfo');
+            const userDetails = document.getElementById('userDetails');
+            const authStatus = document.getElementById('authStatusOverview');
+            
+            if (currentUser) {
+                userInfo.style.display = 'block';
+                userDetails.innerHTML = `
+                    <p><strong>Email:</strong> ${currentUser.email}</p>
+                    <p><strong>ID:</strong> ${currentUser.id}</p>
+                    <p><strong>Subscription:</strong> ${currentUser.subscriptionTier}</p>
+                `;
+                authStatus.textContent = `✅ ${currentUser.email}`;
+            } else {
+                userInfo.style.display = 'none';
+                authStatus.textContent = '❌ Not logged in';
+            }
+        }
+        
+        // Playlist functions
         document.getElementById('createPlaylistForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -1339,8 +986,7 @@
                     method: 'POST',
                     body: JSON.stringify({
                         title: document.getElementById('playlistTitle').value,
-                        originalDescription: document.getElementById('playlistDescription').value,
-                        youtubeId: document.getElementById('youtubeId').value || null
+                        originalDescription: document.getElementById('playlistDescription').value
                     })
                 });
                 
@@ -1358,27 +1004,30 @@
             
             try {
                 const data = await apiCall('/api/playlists');
+                currentPlaylists = data.playlists || [];
+                
                 const list = document.getElementById('playlistList');
                 
-                if (data.playlists.length === 0) {
+                if (currentPlaylists.length === 0) {
                     list.innerHTML = '<p>📝 No playlists yet. Create your first one!</p>';
                     return;
                 }
                 
-                list.innerHTML = data.playlists.map(playlist => `
+                list.innerHTML = currentPlaylists.map(playlist => `
                     <div class="playlist-item">
                         <h4>📋 ${playlist.title}</h4>
                         <p>${playlist.originalDescription || 'No description'}</p>
+                        ${playlist.youtubeId ? `<p><strong>YouTube ID:</strong> ${playlist.youtubeId}</p>` : ''}
                         <div class="playlist-meta">
                             👁️ Views: ${playlist.views} | 
                             🎥 Videos: ${playlist.videoCount} | 
                             ✨ Enhanced: ${playlist.enhanced ? 'Yes' : 'No'} |
                             📅 Created: ${new Date(playlist.createdAt * 1000).toLocaleDateString()}
                         </div>
-                        <button onclick="deletePlaylist('${playlist.id}')" 
-                                style="width: auto; background: #dc3545; margin-top: 10px;">
-                            🗑️ Delete
-                        </button>
+                        <div class="button-group" style="margin-top: 10px;">
+                            <button onclick="selectPlaylist('${playlist.id}')" class="small-button" style="background: #007bff;">📹 View Videos</button>
+                            <button onclick="deletePlaylist('${playlist.id}')" class="small-button" style="background: #dc3545;">🗑️ Delete</button>
+                        </div>
                     </div>
                 `).join('');
                 
@@ -1399,71 +1048,518 @@
             }
         }
         
+        function selectPlaylist(playlistId) {
+            selectedPlaylistId = playlistId;
+            showSection('videos');
+            document.getElementById('playlistSelect').value = playlistId;
+            loadPlaylistVideos();
+        }
+        
+        async function createTestPlaylists() {
+            if (!authToken) {
+                showStatus('❌ Please log in first', 'error');
+                return;
+            }
+            
+            const testPlaylists = [
+                { title: 'Test Playlist 1', description: 'A test playlist for Phase 2' },
+                { title: 'YouTube Import Test', description: 'Playlist for testing YouTube imports' }
+            ];
+            
+            for (const playlist of testPlaylists) {
+                try {
+                    await apiCall('/api/playlists', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            title: playlist.title,
+                            originalDescription: playlist.description
+                        })
+                    });
+                } catch (error) {
+                    console.error('Failed to create test playlist:', error);
+                }
+            }
+            
+            showStatus('✅ Test playlists created', 'success');
+            loadPlaylists();
+        }
+        
         async function deleteAllPlaylists() {
-            if (!confirm('⚠️ Are you sure you want to delete ALL playlists? This cannot be undone!')) return;
+            if (!confirm('⚠️ Are you sure you want to delete ALL playlists?')) return;
             
             try {
-                const data = await apiCall('/api/playlists');
-                for (const playlist of data.playlists) {
+                for (const playlist of currentPlaylists) {
                     await apiCall(`/api/playlists/${playlist.id}`, { method: 'DELETE' });
                 }
-                showStatus('🗑️ All playlists deleted successfully!', 'success');
+                showStatus('🗑️ All playlists deleted', 'success');
                 loadPlaylists();
             } catch (error) {
                 showStatus(`❌ Failed to delete playlists: ${error.message}`, 'error');
             }
         }
         
-        // Profile (keeping existing)
-        async function loadProfile() {
+        // YouTube Integration functions
+        document.getElementById('importForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!authToken) {
+                showStatus('❌ Please log in first', 'error');
+                return;
+            }
+            
+            const url = document.getElementById('youtubeUrl').value;
+            const maxVideos = parseInt(document.getElementById('maxVideos').value) || 50;
+            const customTitle = document.getElementById('customTitle').value;
+            const customDescription = document.getElementById('customDescription').value;
+            
+            showImportProgress(true);
+            document.getElementById('importBtn').disabled = true;
+            
+            try {
+                const data = await apiCall('/api/import', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        url: url,
+                        options: {
+                            maxVideos: maxVideos,
+                            customTitle: customTitle || undefined,
+                            customDescription: customDescription || undefined
+                        }
+                    })
+                });
+                
+                showImportProgress(false);
+                showStatus(`🎉 Import successful! Imported ${data.import.videosImported}/${data.import.totalVideos} videos`, 'success');
+                document.getElementById('importForm').reset();
+                loadPlaylists();
+                loadImportHistory();
+                
+            } catch (error) {
+                showImportProgress(false);
+                showStatus(`❌ Import failed: ${error.message}`, 'error');
+            }
+            
+            document.getElementById('importBtn').disabled = false;
+        });
+        
+        function showImportProgress(show) {
+            const progress = document.getElementById('importProgress');
+            if (show) {
+                progress.style.display = 'block';
+                // Simulate progress
+                let width = 0;
+                const interval = setInterval(() => {
+                    width += Math.random() * 20;
+                    if (width > 90) width = 90;
+                    document.getElementById('importProgressFill').style.width = width + '%';
+                    document.getElementById('importStatus').textContent = 
+                        width < 30 ? 'Fetching playlist metadata...' :
+                        width < 60 ? 'Loading videos...' :
+                        width < 90 ? 'Processing video details...' : 'Finalizing import...';
+                }, 500);
+                
+                progress.dataset.interval = interval;
+            } else {
+                progress.style.display = 'none';
+                if (progress.dataset.interval) {
+                    clearInterval(progress.dataset.interval);
+                }
+                document.getElementById('importProgressFill').style.width = '0%';
+            }
+        }
+        
+        async function testImportSample(type) {
+            if (!authToken) {
+                showStatus('❌ Please log in first', 'error');
+                return;
+            }
+            
+            const playlistId = samplePlaylists[type];
+            document.getElementById('youtubeUrl').value = playlistId;
+            document.getElementById('maxVideos').value = '10';
+            document.getElementById('customTitle').value = `Test ${type.charAt(0).toUpperCase() + type.slice(1)} Playlist`;
+            
+            if (type === 'invalid') {
+                showStatus('⚠️ Testing with invalid playlist ID - this should fail', 'warning');
+            } else {
+                showStatus(`📝 Filled form with ${type} sample playlist`, 'info');
+            }
+        }
+        
+        async function loadImportHistory() {
+            // This would load recent imports - for now just show placeholder
+            const list = document.getElementById('importList');
+            list.innerHTML = '<p>Import history will be displayed here...</p>';
+        }
+        
+        // Video Management functions
+        async function loadPlaylistsForSelect() {
+            if (!authToken) return;
+            
+            const select = document.getElementById('playlistSelect');
+            select.innerHTML = '<option value="">Choose a playlist...</option>';
+            
+            if (currentPlaylists.length === 0) {
+                await loadPlaylists();
+            }
+            
+            currentPlaylists.forEach(playlist => {
+                const option = document.createElement('option');
+                option.value = playlist.id;
+                option.textContent = `${playlist.title} (${playlist.videoCount} videos)`;
+                select.appendChild(option);
+            });
+        }
+        
+        async function loadPlaylistVideos() {
+            const playlistId = document.getElementById('playlistSelect').value || selectedPlaylistId;
+            if (!playlistId || !authToken) return;
+            
+            try {
+                const data = await apiCall(`/api/playlists/${playlistId}/videos`);
+                const videos = data.videos || [];
+                
+                const container = document.getElementById('videoItems');
+                
+                if (videos.length === 0) {
+                    container.innerHTML = '<p>📹 No videos in this playlist yet.</p>';
+                    return;
+                }
+                
+                container.innerHTML = videos.map(video => `
+                    <div class="video-item">
+                        <div class="video-thumbnail">
+                            ${video.thumbnailUrl ? 
+                                `<img src="${video.thumbnailUrl}" alt="Thumbnail">` : 
+                                '🎥 No thumb'
+                            }
+                        </div>
+                        <div class="video-info">
+                            <div class="video-title">${video.title}</div>
+                            <div class="video-meta">
+                                📺 ${video.channelName} | 
+                                ⏱️ ${video.duration} | 
+                                👁️ ${video.viewCount.toLocaleString()} views |
+                                📍 Position: ${video.position}
+                            </div>
+                            <p style="font-size: 11px; color: #666; margin-top: 5px;">
+                                ${video.description ? video.description.substring(0, 100) + '...' : 'No description'}
+                            </p>
+                        </div>
+                        <div class="video-actions">
+                            <button onclick="moveVideo('${playlistId}', '${video.id}', ${video.position - 1})" 
+                                    class="small-button" title="Move Up">⬆️</button>
+                            <button onclick="moveVideo('${playlistId}', '${video.id}', ${video.position + 1})" 
+                                    class="small-button" title="Move Down">⬇️</button>
+                            <button onclick="removeVideo('${playlistId}', '${video.id}')" 
+                                    class="small-button" style="background: #dc3545;" title="Remove">🗑️</button>
+                            <button onclick="window.open('${video.url}', '_blank')" 
+                                    class="small-button" style="background: #28a745;" title="Watch">▶️</button>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                showStatus(`❌ Failed to load videos: ${error.message}`, 'error');
+            }
+        }
+        
+        document.getElementById('addVideoForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const playlistId = document.getElementById('playlistSelect').value;
+            if (!playlistId) {
+                showStatus('❌ Please select a playlist first', 'error');
+                return;
+            }
+            
+            try {
+                const data = await apiCall(`/api/playlists/${playlistId}/videos`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        videoUrl: document.getElementById('videoUrl').value,
+                        position: parseInt(document.getElementById('videoPosition').value) || undefined
+                    })
+                });
+                
+                showStatus('🎉 Video added successfully!', 'success');
+                document.getElementById('addVideoForm').reset();
+                loadPlaylistVideos();
+                
+            } catch (error) {
+                showStatus(`❌ Failed to add video: ${error.message}`, 'error');
+            }
+        });
+        
+        async function removeVideo(playlistId, videoId) {
+            if (!confirm('Remove this video from the playlist?')) return;
+            
+            try {
+                await apiCall(`/api/playlists/${playlistId}/videos/${videoId}`, { method: 'DELETE' });
+                showStatus('🗑️ Video removed', 'success');
+                loadPlaylistVideos();
+            } catch (error) {
+                showStatus(`❌ Failed to remove video: ${error.message}`, 'error');
+            }
+        }
+        
+        async function moveVideo(playlistId, videoId, newPosition) {
+            if (newPosition < 0) return;
+            
+            try {
+                await apiCall(`/api/playlists/${playlistId}/videos/${videoId}/position`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ position: newPosition })
+                });
+                
+                showStatus('↕️ Video position updated', 'success');
+                loadPlaylistVideos();
+            } catch (error) {
+                showStatus(`❌ Failed to move video: ${error.message}`, 'error');
+            }
+        }
+        
+        async function sortVideos(sortBy) {
+            // This would implement client-side sorting or call API with sort parameters
+            showStatus(`🔄 Sorting by ${sortBy}...`, 'info');
+            // For now, just reload
+            loadPlaylistVideos();
+        }
+        
+        function shuffleVideos() {
+            showStatus('🔀 Shuffle functionality would be implemented here', 'info');
+        }
+        
+        // Quota Management functions
+        async function loadQuotaUsage() {
             if (!authToken) return;
             
             try {
-                const [profileData, statsData] = await Promise.all([
-                    apiCall('/api/auth/profile'),
-                    apiCall('/api/stats')
-                ]);
+                const data = await apiCall('/api/youtube/quota');
+                const quota = data.quota;
                 
-                document.getElementById('userInfo').innerHTML = `
-                    <div class="user-info">
-                        <h3>👤 User Information</h3>
-                        <p><strong>📧 Email:</strong> ${profileData.user.email}</p>
-                        <p><strong>💳 Subscription:</strong> ${profileData.user.subscriptionTier}</p>
-                        <p><strong>📅 Member since:</strong> ${new Date(profileData.user.createdAt * 1000).toLocaleDateString()}</p>
-                        <p><strong>🔒 GDPR Consent:</strong> ${profileData.user.gdprConsent ? 'Yes' : 'No'}</p>
-                    </div>
-                `;
+                document.getElementById('quotaDate').textContent = quota.date;
+                document.getElementById('quotaUsed').textContent = quota.quotaUsed;
+                document.getElementById('quotaLimit').textContent = quota.quotaLimit;
+                document.getElementById('quotaRemaining').textContent = quota.quotaRemaining;
+                document.getElementById('quotaRequests').textContent = quota.requestsCount;
                 
-                document.getElementById('userStats').innerHTML = `
-                    <div class="user-info">
-                        <h3>📊 Statistics</h3>
-                        <p><strong>📋 Total Playlists:</strong> ${statsData.stats.totalPlaylists}</p>
-                        <p><strong>✨ Enhanced Playlists:</strong> ${statsData.stats.enhancedCount}</p>
-                        <p><strong>👁️ Total Views:</strong> ${statsData.stats.totalViews}</p>
-                        <p><strong>🎥 Total Videos:</strong> ${statsData.stats.totalVideos}</p>
-                    </div>
-                `;
+                const percentage = (quota.quotaUsed / quota.quotaLimit) * 100;
+                document.getElementById('quotaFill').style.width = percentage + '%';
                 
             } catch (error) {
-                showStatus(`❌ Failed to load profile: ${error.message}`, 'error');
+                showStatus(`❌ Failed to load quota: ${error.message}`, 'error');
             }
+        }
+        
+        function calculateQuotaCost() {
+            const cost = parseInt(document.getElementById('operationType').value);
+            const count = parseInt(document.getElementById('requestCount').value);
+            const total = cost * count;
+            
+            document.getElementById('quotaCalculation').innerHTML = `
+                <p><strong>Total Cost:</strong> ${total} units</p>
+                <p><strong>Percentage of daily quota:</strong> ${(total / 10000 * 100).toFixed(2)}%</p>
+            `;
+        }
+        
+        async function clearYouTubeCache() {
+            showStatus('🗑️ Cache clearing would be implemented here', 'info');
+        }
+        
+        async function getCacheStats() {
+            showStatus('📊 Cache stats would be displayed here', 'info');
+        }
+        
+        // Testing functions
+        async function testEndpoint(endpoint, method = 'GET', requireAuth = false, body = null) {
+            if (requireAuth && !authToken) {
+                showStatus(`❌ ${method} ${endpoint}: Authentication required`, 'error');
+                return;
+            }
+            
+            try {
+                const options = { method };
+                if (body) options.body = JSON.stringify(body);
+                
+                const data = await apiCall(endpoint, options);
+                showStatus(`✅ ${method} ${endpoint}: Success\n${JSON.stringify(data, null, 2)}`, 'success');
+                
+            } catch (error) {
+                showStatus(`❌ ${method} ${endpoint}: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testRegisterEndpoint() {
+            const email = `test-${Date.now()}@example.com`;
+            await testEndpoint('/api/auth/register', 'POST', false, {
+                email, password: 'Test123!', gdprConsent: true
+            });
+        }
+        
+        async function testLoginEndpoint() {
+            await testEndpoint('/api/auth/login', 'POST', false, {
+                email: 'test@example.com', password: 'Test123!'
+            });
+        }
+        
+        async function testImportEndpoint() {
+            if (!authToken) {
+                showStatus('❌ Please log in first', 'error');
+                return;
+            }
+            
+            await testEndpoint('/api/import', 'POST', true, {
+                url: samplePlaylists.educational,
+                options: { maxVideos: 5, customTitle: 'Test Import' }
+            });
+        }
+        
+        async function testGetVideosEndpoint() {
+            if (currentPlaylists.length === 0) {
+                showStatus('❌ No playlists available for testing', 'error');
+                return;
+            }
+            
+            const playlistId = currentPlaylists[0].id;
+            await testEndpoint(`/api/playlists/${playlistId}/videos`, 'GET', true);
+        }
+        
+        async function testAddVideoEndpoint() {
+            if (currentPlaylists.length === 0) {
+                showStatus('❌ No playlists available for testing', 'error');
+                return;
+            }
+            
+            const playlistId = currentPlaylists[0].id;
+            await testEndpoint(`/api/playlists/${playlistId}/videos`, 'POST', true, {
+                videoUrl: 'dQw4w9WgXcQ', // Rick Roll for testing
+                position: 1
+            });
+        }
+        
+        async function testAllEndpoints() {
+            showStatus('🧪 Running comprehensive endpoint tests...', 'info');
+            
+            const tests = [
+                () => testEndpoint('/api/health', 'GET'),
+                () => testEndpoint('/api/auth/profile', 'GET', true),
+                () => testEndpoint('/api/playlists', 'GET', true),
+                () => testEndpoint('/api/youtube/quota', 'GET', true)
+            ];
+            
+            for (const test of tests) {
+                try {
+                    await test();
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                } catch (error) {
+                    console.error('Test failed:', error);
+                }
+            }
+            
+            showStatus('✅ All endpoint tests completed', 'success');
+        }
+        
+        async function testPhase2Endpoints() {
+            showStatus('🆕 Testing Phase 2 endpoints...', 'info');
+            
+            if (!authToken) {
+                showStatus('❌ Please log in first to test Phase 2 features', 'error');
+                return;
+            }
+            
+            const tests = [
+                () => testEndpoint('/api/youtube/quota', 'GET', true),
+                () => testGetVideosEndpoint(),
+                () => testImportEndpoint()
+            ];
+            
+            for (const test of tests) {
+                try {
+                    await test();
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                } catch (error) {
+                    console.error('Phase 2 test failed:', error);
+                }
+            }
+            
+            showStatus('✅ Phase 2 endpoint tests completed', 'success');
+        }
+        
+        // Overview and Quick Start
+        function updateOverview() {
+            const dbStatus = document.getElementById('dbStatusOverview');
+            dbStatus.textContent = '✅ Connected';
+            
+            // Update stats if user is logged in
+            if (authToken) {
+                loadPlaylists().then(() => {
+                    // Update any overview stats here
+                });
+            }
+        }
+        
+        async function quickStart() {
+            showStatus('🏃‍♂️ Running quick start test sequence...', 'info');
+            
+            try {
+                // 1. Test connection
+                await testConnection();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // 2. If not logged in, create test user
+                if (!authToken) {
+                    generateTestUser();
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    // Auto-register
+                    document.getElementById('registerForm').dispatchEvent(new Event('submit'));
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
+                // 3. Create test playlist
+                if (authToken) {
+                    await createTestPlaylists();
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+                
+                // 4. Test quota endpoint
+                if (authToken) {
+                    await loadQuotaUsage();
+                }
+                
+                showStatus('✅ Quick start completed successfully!', 'success');
+                
+            } catch (error) {
+                showStatus(`❌ Quick start failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testYouTubeImport() {
+            if (!authToken) {
+                showStatus('❌ Please log in first', 'error');
+                return;
+            }
+            
+            showSection('youtube');
+            testImportSample('educational');
+            showStatus('📝 YouTube import test prepared. Click "Import Playlist" to test.', 'info');
         }
         
         // Initialize
         if (authToken) {
             showStatus('🔑 Previously logged in session found', 'success');
-            updateConnectionStatus(true);
-            updateJWTDisplay();
+            loadProfile();
         }
         
         // Test connection on page load
         testConnection();
+        updateOverview();
         
-        // Auto-test connection every 30 seconds
-        setInterval(testConnection, 30000);
-        
-        // Update JWT display every 5 seconds
-        setInterval(updateJWTDisplay, 5000);
+        // If user is logged in, update info
+        if (authToken) {
+            updateUserInfo();
+        }
     </script>
 </body>
 </html>

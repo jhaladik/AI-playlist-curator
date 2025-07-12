@@ -1,4 +1,4 @@
-# wrangler.toml - Fixed with local development secret support
+# wrangler.toml - Updated for Phase 2: YouTube Integration
 
 name = "playlist-ai"
 main = "src/workers/api-worker.js"
@@ -7,7 +7,7 @@ compatibility_date = "2024-03-01"
 # Environment variables for local development only
 [vars]
 ENVIRONMENT = "development"
-# Note: JWT_SECRET removed for production security - use wrangler secret put instead
+# Note: JWT_SECRET and YOUTUBE_API_KEY removed for production security
 
 # D1 Database binding
 [[d1_databases]]
@@ -15,9 +15,14 @@ binding = "DB"
 database_name = "playlist-ai-db"
 database_id = "702d7210-6ee3-4462-9101-a41a3877068b"
 
-# KV namespace for sessions
+# KV namespace for sessions and caching
 [[kv_namespaces]]
 binding = "SESSIONS"
+id = "d08b2f068c944da1ace819d9441bee68"
+
+# Additional KV namespace for YouTube API caching (optional - can use same as SESSIONS)
+[[kv_namespaces]]
+binding = "CACHE"
 id = "d08b2f068c944da1ace819d9441bee68"
 
 # Development settings
@@ -25,13 +30,15 @@ id = "d08b2f068c944da1ace819d9441bee68"
 [env.development.vars]
 ENVIRONMENT = "development"
 JWT_SECRET = "local-dev-jwt-secret-key-minimum-32-characters-for-testing-purposes-only"
+# For testing, you can use a temporary YouTube API key here
+# YOUTUBE_API_KEY = "your-youtube-api-key-for-testing"
 
 # Staging environment (uses actual secrets)
 [env.staging]
 name = "playlist-ai-staging"
 [env.staging.vars]
 ENVIRONMENT = "staging"
-# Note: JWT_SECRET will come from wrangler secret put in staging/production
+# Note: JWT_SECRET and YOUTUBE_API_KEY will come from wrangler secret put in staging/production
 
 [[env.staging.d1_databases]]
 binding = "DB"
@@ -42,12 +49,16 @@ database_id = "your-staging-d1-id"
 binding = "SESSIONS"
 id = "your-staging-kv-id"
 
+[[env.staging.kv_namespaces]]
+binding = "CACHE"
+id = "your-staging-cache-kv-id"
+
 # Production environment (uses actual secrets)
 [env.production]
 name = "playlist-ai-production"
 [env.production.vars]
 ENVIRONMENT = "production"
-# Note: JWT_SECRET will come from wrangler secret put in production
+# Note: JWT_SECRET and YOUTUBE_API_KEY will come from wrangler secret put in production
 
 [[env.production.d1_databases]]
 binding = "DB"
@@ -58,10 +69,14 @@ database_id = "your-production-d1-id"
 binding = "SESSIONS"
 id = "your-production-kv-id"
 
+[[env.production.kv_namespaces]]
+binding = "CACHE"
+id = "your-production-cache-kv-id"
+
 # Analytics and observability
 [observability]
 enabled = true
 
-# Note: CPU limits removed - not supported on Free plan
-# [limits]
-# cpu_ms = 50
+# Note: To set up secrets for production, run:
+# wrangler secret put JWT_SECRET
+# wrangler secret put YOUTUBE_API_KEY

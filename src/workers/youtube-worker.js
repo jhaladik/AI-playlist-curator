@@ -1,7 +1,5 @@
-// src/workers/api-worker.js - Enhanced API worker combining Phase 1 + Phase 2
+// src/workers/youtube-worker.js - YouTube integration and video management worker
 
-import { extractUserFromToken } from '../utils/auth-utils.js';
-import { PlaylistDB, handleDBError } from '../utils/db-utils.js';
 import { YouTubeAPI, ValidationUtils } from '../utils/youtube-api.js';
 import { 
   YouTubeValidator, 
@@ -10,6 +8,8 @@ import {
   RequestValidator,
   Sanitizer 
 } from '../utils/validation.js';
+import { extractUserFromToken } from '../utils/auth-utils.js';
+import { PlaylistDB, handleDBError } from '../utils/db-utils.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -26,77 +26,15 @@ export default {
     }
     
     try {
-      // Health check endpoint
-      if (url.pathname === '/api/health' && request.method === 'GET') {
-        return jsonResponse({ 
-          status: 'healthy', 
-          timestamp: Date.now(),
-          phase: 'Phase 2 - YouTube Integration',
-          features: ['auth', 'playlists', 'youtube-import', 'video-management']
-        });
+      // Initialize YouTube API client
+      if (!env.YOUTUBE_API_KEY) {
+        return jsonResponse({ error: 'YouTube API not configured' }, 503);
       }
       
-      // === PHASE 1 ENDPOINTS (Auth & Basic Playlists) ===
+      const youtubeAPI = new YouTubeAPI(env.YOUTUBE_API_KEY, env.DB, env.CACHE);
       
-      // Auth endpoints
-      if (url.pathname === '/api/auth/register' && request.method === 'POST') {
-        return await handleRegister(request, env);
-      }
-      
-      if (url.pathname === '/api/auth/login' && request.method === 'POST') {
-        return await handleLogin(request, env);
-      }
-      
-      if (url.pathname === '/api/auth/profile' && request.method === 'GET') {
-        return await handleGetProfile(request, env);
-      }
-      
-      if (url.pathname === '/api/auth/logout' && request.method === 'POST') {
-        return await handleLogout(request, env);
-      }
-      
-      // Basic playlist endpoints
-      if (url.pathname === '/api/playlists' && request.method === 'GET') {
-        return await handleGetPlaylists(request, env);
-      }
-      
-      if (url.pathname === '/api/playlists' && request.method === 'POST') {
-        return await handleCreatePlaylist(request, env);
-      }
-      
-      if (url.pathname.match(/^\/api\/playlists\/[^\/]+$/) && request.method === 'GET') {
-        const playlistId = url.pathname.split('/').pop();
-        return await handleGetPlaylist(request, env, playlistId);
-      }
-      
-      if (url.pathname.match(/^\/api\/playlists\/[^\/]+$/) && request.method === 'PUT') {
-        const playlistId = url.pathname.split('/').pop();
-        return await handleUpdatePlaylist(request, env, playlistId);
-      }
-      
-      if (url.pathname.match(/^\/api\/playlists\/[^\/]+$/) && request.method === 'DELETE') {
-        const playlistId = url.pathname.split('/').pop();
-        return await handleDeletePlaylist(request, env, playlistId);
-      }
-      
-      // Stats endpoint
-      if (url.pathname === '/api/stats' && request.method === 'GET') {
-        return await handleGetStats(request, env);
-      }
-      
-      // === PHASE 2 ENDPOINTS (YouTube Integration) ===
-      
-      // Initialize YouTube API for Phase 2 endpoints
-      let youtubeAPI = null;
-      if (env.YOUTUBE_API_KEY) {
-        youtubeAPI = new YouTubeAPI(env.YOUTUBE_API_KEY, env.DB, env.CACHE || env.SESSIONS);
-      }
-      
-      // Import playlist from YouTube
+      // Import playlist endpoint
       if (url.pathname === '/api/import' && request.method === 'POST') {
-        if (!youtubeAPI) {
-          return jsonResponse({ error: 'YouTube API not configured' }, 503);
-        }
         return await handleImportPlaylist(request, env, youtubeAPI);
       }
       
@@ -108,9 +46,6 @@ export default {
       
       // Add video to playlist
       if (url.pathname.match(/^\/api\/playlists\/[^\/]+\/videos$/) && request.method === 'POST') {
-        if (!youtubeAPI) {
-          return jsonResponse({ error: 'YouTube API not configured' }, 503);
-        }
         const playlistId = url.pathname.split('/')[3];
         return await handleAddVideoToPlaylist(request, env, youtubeAPI, playlistId);
       }
@@ -123,7 +58,7 @@ export default {
         return await handleRemoveVideoFromPlaylist(request, env, playlistId, videoId);
       }
       
-      // Update video position
+      // Update video position in playlist
       if (url.pathname.match(/^\/api\/playlists\/[^\/]+\/videos\/[^\/]+\/position$/) && request.method === 'PUT') {
         const parts = url.pathname.split('/');
         const playlistId = parts[3];
@@ -131,15 +66,12 @@ export default {
         return await handleUpdateVideoPosition(request, env, playlistId, videoId);
       }
       
-      // YouTube quota usage
+      // Get YouTube quota usage
       if (url.pathname === '/api/youtube/quota' && request.method === 'GET') {
-        if (!youtubeAPI) {
-          return jsonResponse({ error: 'YouTube API not configured' }, 503);
-        }
         return await handleGetQuotaUsage(request, env, youtubeAPI);
       }
       
-      // Import status
+      // Import status check
       if (url.pathname.match(/^\/api\/imports\/[^\/]+$/) && request.method === 'GET') {
         const importId = url.pathname.split('/')[3];
         return await handleGetImportStatus(request, env, importId);
@@ -148,544 +80,18 @@ export default {
       return jsonResponse({ error: 'Not found' }, 404);
       
     } catch (error) {
-      console.error('API worker error:', error);
-      return jsonResponse({ error: error.message }, 500);
+      console.error('YouTube worker error:', error);
+      return jsonResponse({ error: 'Internal server error' }, 500);
     }
   }
 };
 
-// === PHASE 1 IMPLEMENTATION (Auth & Basic Playlists) ===
-
-// Import auth functions
-import {
-  createJWT,
-  verifyJWT,
-  hashPassword,
-  verifyPassword,
-  generateUserId,
-  isValidEmail,
-  isValidPassword
-} from '../utils/auth-utils.js';
-
-import { UserDB, GDPRConsentDB } from '../utils/db-utils.js';
-
 /**
- * Handle user registration
- */
-async function handleRegister(request, env) {
-  const data = await request.json();
-  const { email, password, gdprConsent = false } = data;
-  
-  // Validation
-  if (!email || !password) {
-    return jsonResponse({ error: 'Email and password are required' }, 400);
-  }
-  
-  if (!isValidEmail(email)) {
-    return jsonResponse({ error: 'Invalid email format' }, 400);
-  }
-  
-  if (!isValidPassword(password)) {
-    return jsonResponse({
-      error: 'Password must be at least 8 characters with uppercase, lowercase, and number'
-    }, 400);
-  }
-  
-  if (!gdprConsent) {
-    return jsonResponse({ error: 'GDPR consent is required' }, 400);
-  }
-  
-  try {
-    // Check if user already exists
-    const existingUser = await UserDB.findByEmail(env.DB, email.toLowerCase());
-    if (existingUser) {
-      return jsonResponse({ error: 'User already exists' }, 409);
-    }
-    
-    // Create new user
-    const userId = generateUserId();
-    const passwordHash = await hashPassword(password);
-    
-    const result = await UserDB.create(env.DB, {
-      id: userId,
-      email: email.toLowerCase(),
-      passwordHash,
-      gdprConsent: gdprConsent ? 1 : 0
-    });
-    
-    if (!result.success) {
-      return jsonResponse({ error: 'Failed to create user' }, 500);
-    }
-    
-    // Record GDPR consent
-    const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
-    await GDPRConsentDB.record(env.DB, {
-      userId,
-      consentType: 'registration',
-      granted: true,
-      ipAddress: clientIP
-    });
-    
-    // Create JWT token
-    const tokenPayload = {
-      userId,
-      email: email.toLowerCase(),
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
-    };
-    
-    const token = await createJWT(tokenPayload, env.JWT_SECRET);
-    
-    // Store session in KV
-    const sessionId = crypto.randomUUID();
-    await env.SESSIONS.put(sessionId, JSON.stringify({
-      userId,
-      email: email.toLowerCase(),
-      createdAt: Date.now()
-    }), { expirationTtl: 86400 }); // 24 hours
-    
-    return jsonResponse({
-      success: true,
-      user: {
-        id: userId,
-        email: email.toLowerCase(),
-        subscriptionTier: 'free'
-      },
-      token,
-      sessionId
-    });
-    
-  } catch (error) {
-    console.error('Registration error:', error);
-    return jsonResponse({ error: 'Registration failed' }, 500);
-  }
-}
-
-/**
- * Handle user login
- */
-async function handleLogin(request, env) {
-  const data = await request.json();
-  const { email, password } = data;
-  
-  if (!email || !password) {
-    return jsonResponse({ error: 'Email and password are required' }, 400);
-  }
-  
-  try {
-    // Find user
-    const user = await UserDB.findByEmail(env.DB, email.toLowerCase());
-    if (!user) {
-      return jsonResponse({ error: 'Invalid credentials' }, 401);
-    }
-    
-    // Verify password
-    const isValidPass = await verifyPassword(password, user.password_hash);
-    if (!isValidPass) {
-      return jsonResponse({ error: 'Invalid credentials' }, 401);
-    }
-    
-    // Update last login
-    await UserDB.updateLastLogin(env.DB, user.id);
-    
-    // Create JWT token
-    const tokenPayload = {
-      userId: user.id,
-      email: user.email,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
-    };
-    
-    const token = await createJWT(tokenPayload, env.JWT_SECRET);
-    
-    // Store session in KV
-    const sessionId = crypto.randomUUID();
-    await env.SESSIONS.put(sessionId, JSON.stringify({
-      userId: user.id,
-      email: user.email,
-      createdAt: Date.now()
-    }), { expirationTtl: 86400 }); // 24 hours
-    
-    return jsonResponse({
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        subscriptionTier: user.subscription_tier
-      },
-      token,
-      sessionId
-    });
-    
-  } catch (error) {
-    console.error('Login error:', error);
-    return jsonResponse({ error: 'Login failed' }, 500);
-  }
-}
-
-/**
- * Handle get user profile
- */
-async function handleGetProfile(request, env) {
-  try {
-    const userData = await extractUserFromToken(request, env.JWT_SECRET);
-    
-    const user = await UserDB.findById(env.DB, userData.userId);
-    if (!user) {
-      return jsonResponse({ error: 'User not found' }, 404);
-    }
-    
-    return jsonResponse({
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        subscriptionTier: user.subscription_tier,
-        createdAt: user.created_at,
-        gdprConsent: Boolean(user.gdpr_consent)
-      }
-    });
-    
-  } catch (error) {
-    return jsonResponse({ error: 'Unauthorized' }, 401);
-  }
-}
-
-/**
- * Handle logout
- */
-async function handleLogout(request, env) {
-  try {
-    const userData = await extractUserFromToken(request, env.JWT_SECRET);
-    
-    return jsonResponse({
-      success: true,
-      message: 'Logged out successfully'
-    });
-    
-  } catch (error) {
-    return jsonResponse({ error: 'Unauthorized' }, 401);
-  }
-}
-
-/**
- * Get user's playlists
- */
-async function handleGetPlaylists(request, env) {
-  try {
-    const userData = await extractUserFromToken(request, env.JWT_SECRET);
-    const url = new URL(request.url);
-    
-    const limit = Math.min(parseInt(url.searchParams.get('limit')) || 50, 100);
-    const offset = Math.max(parseInt(url.searchParams.get('offset')) || 0, 0);
-    
-    const result = await PlaylistDB.findByUserId(env.DB, userData.userId, limit, offset);
-    
-    if (!result.success) {
-      return jsonResponse({ error: 'Failed to fetch playlists' }, 500);
-    }
-    
-    const playlists = result.results || [];
-    
-    // Transform data for response
-    const transformedPlaylists = playlists.map(playlist => ({
-      id: playlist.id,
-      title: playlist.title,
-      originalDescription: playlist.original_description,
-      aiDescription: playlist.ai_description,
-      videoCount: playlist.video_count,
-      sourceCount: playlist.source_count,
-      views: playlist.views,
-      enhanced: Boolean(playlist.enhanced),
-      thumbnailUrl: playlist.thumbnail_url,
-      youtubeId: playlist.youtube_id,
-      createdAt: playlist.created_at,
-      updatedAt: playlist.updated_at
-    }));
-    
-    return jsonResponse({
-      success: true,
-      playlists: transformedPlaylists,
-      pagination: {
-        limit,
-        offset,
-        total: transformedPlaylists.length
-      }
-    });
-    
-  } catch (error) {
-    console.error('Get playlists error:', error);
-    return jsonResponse({ error: 'Unauthorized' }, 401);
-  }
-}
-
-/**
- * Create new playlist
- */
-async function handleCreatePlaylist(request, env) {
-  try {
-    const userData = await extractUserFromToken(request, env.JWT_SECRET);
-    const data = await request.json();
-    
-    const { title, originalDescription, youtubeId, thumbnailUrl } = data;
-    
-    // Validation
-    if (!title || title.trim().length === 0) {
-      return jsonResponse({ error: 'Title is required' }, 400);
-    }
-    
-    if (title.length > 200) {
-      return jsonResponse({ error: 'Title too long (max 200 characters)' }, 400);
-    }
-    
-    // Create playlist
-    const playlistId = crypto.randomUUID();
-    
-    const result = await PlaylistDB.create(env.DB, {
-      id: playlistId,
-      userId: userData.userId,
-      title: title.trim(),
-      originalDescription: originalDescription?.trim() || '',
-      youtubeId: youtubeId || null,
-      thumbnailUrl: thumbnailUrl || null
-    });
-    
-    if (!result.success) {
-      return jsonResponse({ error: 'Failed to create playlist' }, 500);
-    }
-    
-    // Fetch the created playlist
-    const createdPlaylist = await PlaylistDB.findById(env.DB, playlistId);
-    
-    return jsonResponse({
-      success: true,
-      playlist: {
-        id: createdPlaylist.id,
-        title: createdPlaylist.title,
-        originalDescription: createdPlaylist.original_description,
-        aiDescription: createdPlaylist.ai_description,
-        videoCount: createdPlaylist.video_count,
-        sourceCount: createdPlaylist.source_count,
-        views: createdPlaylist.views,
-        enhanced: Boolean(createdPlaylist.enhanced),
-        thumbnailUrl: createdPlaylist.thumbnail_url,
-        youtubeId: createdPlaylist.youtube_id,
-        createdAt: createdPlaylist.created_at,
-        updatedAt: createdPlaylist.updated_at
-      }
-    }, 201);
-    
-  } catch (error) {
-    console.error('Create playlist error:', error);
-    if (error.message.includes('Unauthorized')) {
-      return jsonResponse({ error: 'Unauthorized' }, 401);
-    }
-    return jsonResponse({ error: 'Failed to create playlist' }, 500);
-  }
-}
-
-/**
- * Get single playlist
- */
-async function handleGetPlaylist(request, env, playlistId) {
-  try {
-    const userData = await extractUserFromToken(request, env.JWT_SECRET);
-    
-    const playlist = await PlaylistDB.findById(env.DB, playlistId);
-    
-    if (!playlist) {
-      return jsonResponse({ error: 'Playlist not found' }, 404);
-    }
-    
-    // Check ownership
-    if (playlist.user_id !== userData.userId) {
-      return jsonResponse({ error: 'Access denied' }, 403);
-    }
-    
-    // Increment view count
-    await PlaylistDB.incrementViews(env.DB, playlistId);
-    
-    return jsonResponse({
-      success: true,
-      playlist: {
-        id: playlist.id,
-        title: playlist.title,
-        originalDescription: playlist.original_description,
-        aiDescription: playlist.ai_description,
-        videoCount: playlist.video_count,
-        sourceCount: playlist.source_count,
-        views: playlist.views + 1, // Include the increment
-        enhanced: Boolean(playlist.enhanced),
-        thumbnailUrl: playlist.thumbnail_url,
-        youtubeId: playlist.youtube_id,
-        createdAt: playlist.created_at,
-        updatedAt: playlist.updated_at
-      }
-    });
-    
-  } catch (error) {
-    console.error('Get playlist error:', error);
-    if (error.message.includes('Unauthorized')) {
-      return jsonResponse({ error: 'Unauthorized' }, 401);
-    }
-    return jsonResponse({ error: 'Failed to fetch playlist' }, 500);
-  }
-}
-
-/**
- * Update playlist
- */
-async function handleUpdatePlaylist(request, env, playlistId) {
-  try {
-    const userData = await extractUserFromToken(request, env.JWT_SECRET);
-    const data = await request.json();
-    
-    // Check if playlist exists and user owns it
-    const playlist = await PlaylistDB.findById(env.DB, playlistId);
-    
-    if (!playlist) {
-      return jsonResponse({ error: 'Playlist not found' }, 404);
-    }
-    
-    if (playlist.user_id !== userData.userId) {
-      return jsonResponse({ error: 'Access denied' }, 403);
-    }
-    
-    // Validate updates
-    const updates = {};
-    
-    if (data.title !== undefined) {
-      if (!data.title || data.title.trim().length === 0) {
-        return jsonResponse({ error: 'Title cannot be empty' }, 400);
-      }
-      if (data.title.length > 200) {
-        return jsonResponse({ error: 'Title too long (max 200 characters)' }, 400);
-      }
-      updates.title = data.title.trim();
-    }
-    
-    if (data.originalDescription !== undefined) {
-      updates.originalDescription = data.originalDescription?.trim() || '';
-    }
-    
-    if (data.aiDescription !== undefined) {
-      updates.aiDescription = data.aiDescription?.trim() || null;
-    }
-    
-    if (data.enhanced !== undefined) {
-      updates.enhanced = Boolean(data.enhanced);
-    }
-    
-    if (Object.keys(updates).length === 0) {
-      return jsonResponse({ error: 'No valid fields to update' }, 400);
-    }
-    
-    // Update playlist
-    const result = await PlaylistDB.update(env.DB, playlistId, updates);
-    
-    if (!result.success) {
-      return jsonResponse({ error: 'Failed to update playlist' }, 500);
-    }
-    
-    // Fetch updated playlist
-    const updatedPlaylist = await PlaylistDB.findById(env.DB, playlistId);
-    
-    return jsonResponse({
-      success: true,
-      playlist: {
-        id: updatedPlaylist.id,
-        title: updatedPlaylist.title,
-        originalDescription: updatedPlaylist.original_description,
-        aiDescription: updatedPlaylist.ai_description,
-        videoCount: updatedPlaylist.video_count,
-        sourceCount: updatedPlaylist.source_count,
-        views: updatedPlaylist.views,
-        enhanced: Boolean(updatedPlaylist.enhanced),
-        thumbnailUrl: updatedPlaylist.thumbnail_url,
-        youtubeId: updatedPlaylist.youtube_id,
-        createdAt: updatedPlaylist.created_at,
-        updatedAt: updatedPlaylist.updated_at
-      }
-    });
-    
-  } catch (error) {
-    console.error('Update playlist error:', error);
-    if (error.message.includes('Unauthorized')) {
-      return jsonResponse({ error: 'Unauthorized' }, 401);
-    }
-    return jsonResponse({ error: 'Failed to update playlist' }, 500);
-  }
-}
-
-/**
- * Delete playlist
- */
-async function handleDeletePlaylist(request, env, playlistId) {
-  try {
-    const userData = await extractUserFromToken(request, env.JWT_SECRET);
-    
-    // Check if playlist exists and user owns it
-    const playlist = await PlaylistDB.findById(env.DB, playlistId);
-    
-    if (!playlist) {
-      return jsonResponse({ error: 'Playlist not found' }, 404);
-    }
-    
-    if (playlist.user_id !== userData.userId) {
-      return jsonResponse({ error: 'Access denied' }, 403);
-    }
-    
-    // Delete playlist (cascade will handle videos)
-    const result = await PlaylistDB.delete(env.DB, playlistId);
-    
-    if (!result.success) {
-      return jsonResponse({ error: 'Failed to delete playlist' }, 500);
-    }
-    
-    return jsonResponse({
-      success: true,
-      message: 'Playlist deleted successfully'
-    });
-    
-  } catch (error) {
-    console.error('Delete playlist error:', error);
-    if (error.message.includes('Unauthorized')) {
-      return jsonResponse({ error: 'Unauthorized' }, 401);
-    }
-    return jsonResponse({ error: 'Failed to delete playlist' }, 500);
-  }
-}
-
-/**
- * Get user stats
- */
-async function handleGetStats(request, env) {
-  try {
-    const userData = await extractUserFromToken(request, env.JWT_SECRET);
-    
-    const stats = await PlaylistDB.getStats(env.DB, userData.userId);
-    
-    return jsonResponse({
-      success: true,
-      stats
-    });
-    
-  } catch (error) {
-    console.error('Get stats error:', error);
-    if (error.message.includes('Unauthorized')) {
-      return jsonResponse({ error: 'Unauthorized' }, 401);
-    }
-    return jsonResponse({ error: 'Failed to fetch stats' }, 500);
-  }
-}
-
-// === PHASE 2 IMPLEMENTATION (YouTube Integration) ===
-
-/**
- * Import playlist from YouTube
+ * Handle playlist import from YouTube
  */
 async function handleImportPlaylist(request, env, youtubeAPI) {
   try {
+    // Authenticate user
     const userData = await extractUserFromToken(request, env.JWT_SECRET);
     
     // Validate request
@@ -759,6 +165,7 @@ async function handleImportPlaylist(request, env, youtubeAPI) {
           importedCount++;
         } catch (videoError) {
           console.error(`Failed to import video ${video.id}:`, videoError);
+          // Continue with other videos
         }
       }
       
@@ -835,8 +242,8 @@ async function handleGetPlaylistVideos(request, env, playlistId) {
     // Pagination
     const limit = Math.min(parseInt(url.searchParams.get('limit')) || 50, 100);
     const offset = Math.max(parseInt(url.searchParams.get('offset')) || 0, 0);
-    const sortBy = url.searchParams.get('sortBy') || 'position';
-    const sortOrder = url.searchParams.get('sortOrder') || 'asc';
+    const sortBy = url.searchParams.get('sortBy') || 'position'; // position, title, published_at
+    const sortOrder = url.searchParams.get('sortOrder') || 'asc'; // asc, desc
     
     // Validate sort parameters
     const validSortFields = ['position', 'title', 'published_at', 'added_at', 'view_count'];
